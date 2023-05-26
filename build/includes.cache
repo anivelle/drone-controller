@@ -1,0 +1,17 @@
+[
+  {
+    "Sourcefile": null,
+    "Include": "",
+    "Includepath": "/home/alex/.arduino15/packages/arduino/hardware/mbed_nano/4.0.2/cores/arduino"
+  },
+  {
+    "Sourcefile": null,
+    "Include": "",
+    "Includepath": "/home/alex/.arduino15/packages/arduino/hardware/mbed_nano/4.0.2/variants/ARDUINO_NANO33BLE"
+  },
+  {
+    "Sourcefile": "/home/alex/pid-drone/build/sketch/pid-drone.ino.cpp",
+    "Include": "",
+    "Includepath": null
+  }
+]
