@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include "mbed.h"
 
+#define SEQ_SIZE 11
 uint16_t command;
 
 /**
@@ -16,7 +17,11 @@ void CalcChecksum(uint16_t *command) {
 
 void setup() {
     Serial.begin(9600);
-    uint16_t seq[10] = {10, 5, 10, 5, 10, 5, 10, 5};
+    uint16_t seq[SEQ_SIZE] = {10, 5, 10, 5, 10, 5, 10, 5, 10, 5, 0};
+
+    for (int i = 0; i < SEQ_SIZE; i++) {
+        seq[i] |= 1 << 15;
+    }
 
     NRF_TIMER2->INTENSET = 0x000F0000;
     pinMode(P1_11, OUTPUT);
@@ -30,7 +35,7 @@ void setup() {
     NRF_PWM0->DECODER = PWM_DECODER_LOAD_Common |
                         (PWM_DECODER_MODE_RefreshCount << PWM_DECODER_MODE_Pos);
     NRF_PWM0->SEQ[0].PTR = (uint32_t)&seq;
-    NRF_PWM0->SEQ[0].CNT = 10;
+    NRF_PWM0->SEQ[0].CNT = SEQ_SIZE;
     NRF_PWM0->SEQ[0].REFRESH = 0;
     NRF_PWM0->SEQ[0].ENDDELAY = 0;
     NRF_PWM0->TASKS_SEQSTART[0] = 1;
