@@ -2,7 +2,8 @@
 #include <stdint.h>
 #include "mbed.h"
 
-#define SEQ_SIZE 11
+#define SEQ_SIZE 17
+#define TELEMETRY 0
 uint16_t command;
 
 /**
@@ -11,17 +12,26 @@ uint16_t command;
  */
 void CalcChecksum(uint16_t *command) {
     uint16_t temp = *command;
-    temp = (temp ^ (temp >> 4) ^ (temp >> 8)) & 0x0F;
-    *command |= temp << 12;
+    temp = ((temp ^ (temp >> 4)) ^ (temp >> 8)) & 0x0F;
+    *command = (*command << 4) | temp;
+}
+
+void CreateSequence(uint16_t command, uint16_t sequence[17]) {
+    command = (command << 1) | TELEMETRY;
+    CalcChecksum(&command);
+    int j;
+    // Send LSB last
+    for (int i = 15; i > 0; i--) {
+        sequence[i] = (5 * (1 << ((command >> i) & 1))) | (1 << 15);
+    }
+    sequence[16] = 1 << 15;
 }
 
 void setup() {
     Serial.begin(9600);
-    uint16_t seq[SEQ_SIZE] = {10, 5, 10, 5, 10, 5, 10, 5, 10, 5, 0};
-
-    for (int i = 0; i < SEQ_SIZE; i++) {
-        seq[i] |= 1 << 15;
-    }
+    uint16_t seq[SEQ_SIZE];
+    uint16_t command = 1046;
+    CreateSequence(command, seq);
 
     NRF_TIMER2->INTENSET = 0x000F0000;
     pinMode(P1_11, OUTPUT);
