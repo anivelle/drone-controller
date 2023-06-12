@@ -6,6 +6,7 @@
 #define TELEMETRY 0
 
 uint16_t seq[SEQ_SIZE * 4];
+uint16_t commands[4];
 
 /**
  * Takes a command (currently in the form 0000TSSSSSSSSSSS), and calculates a
@@ -49,8 +50,17 @@ void CreateSequence(uint16_t command[4], uint16_t sequence[17]) {
 void PWM_Init() {
     NRF_PWM0->ENABLE = 1;
 
+    NRF_PWM0->MODE = PWM_MODE_UPDOWN_Up;
+    NRF_PWM0->COUNTERTOP = 13;
+    NRF_PWM0->LOOP = 0;
+    NRF_PWM0->PRESCALER = PWM_PRESCALER_PRESCALER_DIV_1;
+    NRF_PWM0->DECODER = PWM_DECODER_LOAD_Individual |
+                        (PWM_DECODER_MODE_RefreshCount << PWM_DECODER_MODE_Pos);
     // I think this may be okay just being set once
     NRF_PWM0->SEQ[0].PTR = (uint32_t)&seq;
+    NRF_PWM0->SEQ[0].CNT = SEQ_SIZE * 4;
+    NRF_PWM0->SEQ[0].REFRESH = 0;
+    NRF_PWM0->SEQ[0].ENDDELAY = 0;
 }
 
 /**
@@ -72,28 +82,30 @@ int PWM_AddPins(uint8_t channel, uint8_t port, uint32_t pin) {
     NRF_PWM0->PSEL.OUT[channel] = pin | port << 5;
 }
 
-void SendCommand(uint8_t port, uint16_t *seq) {}
+void PWM_SendCommand() { NRF_PWM0->TASKS_SEQSTART[0] = 1; }
 
 void setup() {
-    uint16_t command = 1046;
-    CreateSequence(command, seq[0]);
+    commands[0] = 1046;
+    commands[1] = 500;
+    commands[2] = 1500;
+    commands[3] = 2000;
+    CreateSequence(commands, seq);
 
     NRF_TIMER2->INTENSET = 0x000F0000;
     pinMode(P1_11, OUTPUT);
     digitalWrite(P1_11, LOW);
-    NRF_PWM0->PSEL.OUT[0] = 11 | (1 << 5);
-    NRF_PWM0->ENABLE = 1;
-    NRF_PWM0->MODE = PWM_MODE_UPDOWN_Up;
-    NRF_PWM0->COUNTERTOP = 13;
-    NRF_PWM0->LOOP = 0;
-    NRF_PWM0->PRESCALER = PWM_PRESCALER_PRESCALER_DIV_1;
-    NRF_PWM0->DECODER = PWM_DECODER_LOAD_Common |
-                        (PWM_DECODER_MODE_RefreshCount << PWM_DECODER_MODE_Pos);
-    NRF_PWM0->SEQ[0].PTR = (uint32_t)&seq[0];
-    NRF_PWM0->SEQ[0].CNT = SEQ_SIZE;
-    NRF_PWM0->SEQ[0].REFRESH = 0;
-    NRF_PWM0->SEQ[0].ENDDELAY = 0;
-    NRF_PWM0->TASKS_SEQSTART[0] = 1;
+    pinMode(P1_12, OUTPUT);
+    digitalWrite(P1_12, LOW);
+    pinMode(P1_13, OUTPUT);
+    digitalWrite(P1_13, LOW);
+    pinMode(P1_14, OUTPUT);
+    digitalWrite(P1_14, LOW);
+    PWM_AddPins(0, 1, 11);
+    PWM_AddPins(1, 1, 12);
+    PWM_AddPins(1, 1, 13);
+    PWM_AddPins(1, 1, 14);
+    PWM_Init();
+    PWM_SendCommand();
 }
 
 void loop() {}
