@@ -102,8 +102,8 @@ void setup() {
     digitalWrite(P1_14, LOW);
     PWM_AddPins(0, 1, 11);
     PWM_AddPins(1, 1, 12);
-    PWM_AddPins(1, 1, 13);
-    PWM_AddPins(1, 1, 14);
+    PWM_AddPins(2, 1, 13);
+    PWM_AddPins(3, 1, 14);
     PWM_Init();
     PWM_SendCommand();
 }
