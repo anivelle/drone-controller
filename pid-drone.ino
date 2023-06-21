@@ -3,7 +3,7 @@
 #include "mbed.h"
 
 #define SEQ_SIZE 17
-#define TELEMETRY 0
+#define TELEMETRY_BIT 0
 
 uint16_t seq[SEQ_SIZE * 4];
 uint16_t commands[4];
@@ -18,12 +18,13 @@ void CalcChecksum(uint16_t *command) {
     *command = (*command << 4) | temp;
 }
 
-void CreateSequence(uint16_t command[4], uint16_t sequence[17]) {
+void CreateSequence(uint16_t command[4], uint16_t sequence[SEQ_SIZE * 4]) {
     uint16_t temp[4];
     for (int i = 0; i < 4; i++) {
         temp[i] = command[i];
-        temp[i] = (temp[i] << 1) | TELEMETRY;
+        temp[i] = (temp[i] << 1) | TELEMETRY_BIT;
         CalcChecksum(&temp[i]);
+        Serial.println(temp[i]);
     }
     int j;
     /* Send LSB last
@@ -34,13 +35,16 @@ void CreateSequence(uint16_t command[4], uint16_t sequence[17]) {
      * takes a bit of time. Good things microcontrollers are fast and these are
      * technically quick commands.
      */
-    for (int i = 15; i > 0; i--) {
+    for (int i = 15; i >= 0; i--) {
         for (j = 0; j < 4; j++) {
-            sequence[(i << 2) + j] =
+            sequence[((15 - i) << 2) + j] =
                 (5 * (1 << ((temp[j] >> i) & 1))) | (1 << 15);
+            if (j == 1) {
+                Serial.println(sequence[((15 - i) << 2) + j] & 31);
+            }
         }
     }
-    // The last compare of the PWM sequences are always 0, so the last four
+    // The last compares of the PWM sequences are always 0, so the last four
     // values of the sequence are 0
     for (int i = 0; i < 4; i++) {
         sequence[SEQ_SIZE * 4 - i - 1] = 1 << 15;
@@ -68,23 +72,27 @@ void PWM_Init() {
  * Important note: PWM cannot be enabled before adding a pin. Check the
  * Nano 33 BLE pinout for info on port and pin values
  */
-int PWM_AddPins(uint8_t channel, uint8_t port, uint32_t pin) {
+int PWM_AddPins(uint8_t channel, PinName pin) {
     // PWM cannot be enabled
     if (NRF_PWM0->ENABLE == 1)
         return -1;
     // Only 4 channels
     if (channel > 3)
         return -2;
-    if (pin > 31 || port > 1)
-        return -3;
-
-    // Last 5 bits indicate pin number, bit 6 is port
-    NRF_PWM0->PSEL.OUT[channel] = pin | port << 5;
+    // Bits 0-4 indicate pin number, bit 5 is port
+    pinMode(pin, OUTPUT);
+    digitalWrite(pin, LOW);
+    NRF_PWM0->PSEL.OUT[channel] = pin;
+    return 0;
 }
 
 void PWM_SendCommand() { NRF_PWM0->TASKS_SEQSTART[0] = 1; }
 
 void setup() {
+    Serial.begin(115200);
+    while (!Serial) {
+        ;
+    }
     commands[0] = 1046;
     commands[1] = 500;
     commands[2] = 1500;
@@ -92,14 +100,6 @@ void setup() {
     CreateSequence(commands, seq);
 
     NRF_TIMER2->INTENSET = 0x000F0000;
-    pinMode(P1_11, OUTPUT);
-    digitalWrite(P1_11, LOW);
-    pinMode(P1_12, OUTPUT);
-    digitalWrite(P1_12, LOW);
-    pinMode(P1_13, OUTPUT);
-    digitalWrite(P1_13, LOW);
-    pinMode(P1_14, OUTPUT);
-    digitalWrite(P1_14, LOW);
     PWM_AddPins(0, 1, 11);
     PWM_AddPins(1, 1, 12);
     PWM_AddPins(2, 1, 13);
