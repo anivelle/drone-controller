@@ -1,1 +1,5 @@
 **/build/
+/UnitySim/Drone\ Sim/Library
+/UnitySim/Drone\ Sim/Logs
+/UnitySim/Drone\ Sim/obj
+/UnitySim/Drone\ Sim/UserSettings
