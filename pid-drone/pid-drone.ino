@@ -1,6 +1,7 @@
-#include <stdio.h>
+#include <cstdio>
 #include <stdint.h>
 #include "mbed.h"
+#include "VL53L4CX.h"
 
 #define SEQ_SIZE 17
 #define TELEMETRY_BIT 0
@@ -88,24 +89,49 @@ int PWM_AddPins(uint8_t channel, PinName pin) {
 
 void PWM_SendCommand() { NRF_PWM0->TASKS_SEQSTART[0] = 1; }
 
+VL53L4CX distanceSensor(&Wire, A1);
+uint8_t dataReady;
+VL53L4CX_MultiRangingData_t rangeData;
+int status;
+
 void setup() {
+    distanceSensor.VL53L4CX_WaitDeviceBooted();
+    distanceSensor.VL53L4CX_DataInit();
     Serial.begin(115200);
     while (!Serial) {
         ;
     }
+    Wire.begin();
+    distanceSensor.begin();
+    distanceSensor.VL53L4CX_Off();
+    distanceSensor.InitSensor(0x12);
     commands[0] = 1046;
     commands[1] = 500;
     commands[2] = 1500;
     commands[3] = 2000;
-    CreateSequence(commands, seq);
+    // CreateSequence(commands, seq);
 
-    NRF_TIMER2->INTENSET = 0x000F0000;
-    PWM_AddPins(0, 1, 11);
-    PWM_AddPins(1, 1, 12);
-    PWM_AddPins(2, 1, 13);
-    PWM_AddPins(3, 1, 14);
-    PWM_Init();
-    PWM_SendCommand();
+    // NRF_TIMER2->INTENSET = 0x000F0000;
+    // PWM_AddPins(0, P1_11);
+    // PWM_AddPins(1, P1_12);
+    // PWM_AddPins(2, P1_13);
+    // PWM_AddPins(3, P1_14);
+    // PWM_Init();
+    // PWM_SendCommand();
+    distanceSensor.VL53L4CX_StartMeasurement();
 }
 
-void loop() {}
+void loop() {
+    status = distanceSensor.VL53L4CX_GetMeasurementDataReady(&dataReady);
+    Serial.println(status);
+    if (!status && dataReady) {
+        distanceSensor.VL53L4CX_GetMultiRangingData(&rangeData);
+        for (int i = 0; i < rangeData.NumberOfObjectsFound; i++) {
+            char text[23];
+            sprintf(text, "Found %1d: Distance % 4d", i,
+                    rangeData.RangeData[i].RangeMilliMeter);
+            Serial.println(text);
+        }
+        Serial.println();
+    }
+}
