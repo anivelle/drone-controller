@@ -56,6 +56,7 @@ void loop() {
             Serial.println(text);
         }
         Serial.println();
+        // This is an important line!
         status = distanceSensor.VL53L4CX_ClearInterruptAndStartMeasurement();
     }
 }
