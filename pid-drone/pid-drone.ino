@@ -30,14 +30,13 @@ void setup() {
     seq = new uint16_t[SEQ_SIZE * 4];
     CreateSequence(commands, seq);
 
-    NRF_TIMER2->INTENSET = 0x000F0000;
     Serial.println("Initializing");
     PWM_AddPins(0, P1_11);
     PWM_AddPins(1, P1_12);
     PWM_AddPins(2, P1_13);
     PWM_AddPins(3, P1_14);
     PWM_Init(SEQ_SIZE, seq);
-    // PWM_SendCommand();
+    PWM_SendCommand();
     distanceSensor.VL53L4CX_StartMeasurement();
     Serial.println("Done initializing");
 }
@@ -46,7 +45,6 @@ void loop() {
     VL53L4CX_MultiRangingData_t rangeData;
     dataReady = 0;
     status = distanceSensor.VL53L4CX_GetMeasurementDataReady(&dataReady);
-    Serial.println(status);
     if (!status && (dataReady != 0)) {
         distanceSensor.VL53L4CX_GetMultiRangingData(&rangeData);
         for (int i = 0; i < rangeData.NumberOfObjectsFound; i++) {
