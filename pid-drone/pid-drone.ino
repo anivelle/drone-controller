@@ -5,7 +5,7 @@
 #include "PWM.h"
 #include "DShot.h"
 
-uint16_t *seq;
+uint16_t seq[SEQ_SIZE * 4] __at__ 0x20000000;
 uint16_t commands[4];
 
 VL53L4CX distanceSensor(&Wire, A1);
@@ -27,7 +27,6 @@ void setup() {
     commands[1] = 500;
     commands[2] = 1500;
     commands[3] = 2000;
-    seq = new uint16_t[SEQ_SIZE * 4];
     CreateSequence(commands, seq);
 
     Serial.println("Initializing");
