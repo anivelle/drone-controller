@@ -1,13 +1,13 @@
 all:
 	arduino-cli compile -b arduino:mbed_nano:nano33ble -v \
 	--library /home/alex/Documents/Arduino/libraries/STM32duino_VL53L4CX \
-	--library ./libraries/DSHOT \
+	--libraries ./libraries \
 	--build-path ./build .
 
 compile:
 	arduino-cli compile -b arduino:mbed_nano:nano33ble -v \
 	--library /home/alex/Documents/Arduino/libraries/STM32duino_VL53L4CX \
-	--library ./DSHOT \
+	--libraries ./libraries \
 	--build-path ./build --only-compilation-database .
 
 upload:
