@@ -4,13 +4,12 @@
 #include "VL53L4CX.h"
 #include "PWM.h"
 #include "DShot.h"
-#include "CustomI2C.h"
+#include "Wire.h"
 
 uint16_t seq[SEQ_SIZE * 4];
 uint16_t commands[4];
 
 VL53L4CX distanceSensor(&Wire, A1);
-CustomI2C i2c;
 
 uint8_t dataReady;
 int status;
@@ -21,7 +20,7 @@ void setup() {
     while (!Serial) {
         ;
     }
-    Wire.begin();
+    i2c.begin();
     distanceSensor.begin();
     distanceSensor.VL53L4CX_Off();
     distanceSensor.InitSensor(0x12);
@@ -43,8 +42,6 @@ void setup() {
 }
 
 void loop() {
-    if (tester)
-        Serial.println("Interrupt Occurred");
     VL53L4CX_MultiRangingData_t rangeData;
     dataReady = 0;
     status = distanceSensor.VL53L4CX_GetMeasurementDataReady(&dataReady);
