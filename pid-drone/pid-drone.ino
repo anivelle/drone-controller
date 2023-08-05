@@ -2,9 +2,16 @@
 #include <stdint.h>
 #include "mbed.h"
 
-#define SEQ_SIZE 17
+#define SEQ_SIZE 16
 #define TELEMETRY 0
+#define POTENTIOMETER A0
+
 uint16_t command;
+uint16_t throttle;
+
+uint16_t seq[SEQ_SIZE];
+unsigned int prevTime;
+unsigned int curTime;
 
 /**
  * Takes a command (currently in the form 0000TSSSSSSSSSSS), and calculates a
@@ -21,20 +28,18 @@ void CreateSequence(uint16_t command, uint16_t sequence[17]) {
     CalcChecksum(&command);
     int j;
     // Send LSB last
-    for (int i = 15; i > 0; i--) {
-        sequence[i] = (5 * (1 << ((command >> i) & 1))) | (1 << 15);
+    for (int i = 0; i < 16; i++) {
+        sequence[i] = (5 * (1 << ((command >> (15 - i)) & 1))) | (1 << 15);
     }
-    sequence[16] = 1 << 15;
 }
 
 void setup() {
     Serial.begin(9600);
-    uint16_t seq[SEQ_SIZE];
-    uint16_t command = 1046;
+    command = 48;
     CreateSequence(command, seq);
 
-    NRF_TIMER2->INTENSET = 0x000F0000;
     pinMode(P1_11, OUTPUT);
+    pinMode(A0, INPUT);
     digitalWrite(P1_11, LOW);
     NRF_PWM0->PSEL.OUT[0] = 11 | (1 << 5);
     NRF_PWM0->ENABLE = 1;
@@ -47,8 +52,25 @@ void setup() {
     NRF_PWM0->SEQ[0].PTR = (uint32_t)&seq;
     NRF_PWM0->SEQ[0].CNT = SEQ_SIZE;
     NRF_PWM0->SEQ[0].REFRESH = 0;
-    NRF_PWM0->SEQ[0].ENDDELAY = 0;
+    NRF_PWM0->SEQ[0].ENDDELAY = 13;
     NRF_PWM0->TASKS_SEQSTART[0] = 1;
+    prevTime = millis();
 }
 
-void loop() {}
+void loop() {
+    curTime = millis();
+    if (curTime - prevTime > 100) {
+        command = analogRead(A0) * 2;
+        if (command < 48)
+            command = 48;
+        Serial.println(command);
+        CreateSequence(command, seq);
+        for (int i = 0; i < 16; i++) {
+            Serial.print('\t');
+            Serial.println(seq[i], BIN);
+        }
+        NRF_PWM0->SEQ[0].PTR = (uint32_t)&seq;
+        NRF_PWM0->TASKS_SEQSTART[0] = 1;
+        prevTime = curTime;
+    }
+}
