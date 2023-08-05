@@ -59,6 +59,14 @@ void setup() {
 
 void loop() {
     curTime = millis();
+    // I want to try beeps to see if the commands are even sending correctly
+    for (int i = 1; i < 6; i++) {
+        command = i;
+        CreateSequence(command, seq);
+        NRF_PWM0->SEQ[0].PTR = (uint32_t)&seq;
+        NRF_PWM0->TASKS_SEQSTART[0] = 1;
+        delay(300);
+    }
     if (curTime - prevTime > 100) {
         command = analogRead(A0) * 2;
         if (command < 48)
