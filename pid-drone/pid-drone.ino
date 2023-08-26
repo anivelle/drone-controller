@@ -20,7 +20,7 @@ void setup() {
     while (!Serial) {
         ;
     }
-    i2c.begin();
+    Wire.begin();
     distanceSensor.begin();
     distanceSensor.VL53L4CX_Off();
     distanceSensor.InitSensor(0x12);
