@@ -149,17 +149,43 @@ typedef enum Register {
     UNIQUE_IDF
 };
 
-typedef enum Axis { X, Y, Z, W };
+typedef enum Axis { X, Y, Z, W = 0 };
+
+typedef enum MODE {
+    CONFIG,
+    ACCONLY,
+    MAGONLY,
+    GYROONLY,
+    ACCMAG,
+    ACCGYRO,
+    MAGGYRO,
+    AMG,
+    IMU,
+    COMPASS,
+    M4G,
+    NDOF_FMC_OFF,
+    NDOF
+};
 
 class BNO055 {
   private:
     uint8_t address;
     uint8_t page;
+    TwoWire *wire;
 
-    BNO055(TwoWire *wire);
+  public:
+    BNO055(TwoWire *i2c);
+
+    // Direct access
     uint8_t readRegister(Register reg);
-    void writeRegister(Register reg, uint8_t data);
-    uint16_t readAcc(Axis axis); // Rotational acceleration
+    size_t writeRegister(Register reg, uint8_t data);
+
+    // Raw Data
+    uint16_t readAcc(Axis axis); // Accelerometer
+    uint16_t readMag(Axis axis); // Magnetometer
+    uint16_t readGyr(Axis axis); // Gyroscope
+
+    // Fusion data
     uint16_t readQua(Axis axis); // Quaternion data
     uint16_t readEul(Axis axis); // Euler angles
     uint16_t readLia(Axis axis); // Linear Acceleration

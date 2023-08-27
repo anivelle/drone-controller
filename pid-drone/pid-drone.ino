@@ -5,6 +5,7 @@
 #include "PWM.h"
 #include "DShot.h"
 #include "Wire.h"
+#include "BNO055.h"
 
 uint16_t seq[SEQ_SIZE * 4];
 uint16_t commands[4];
