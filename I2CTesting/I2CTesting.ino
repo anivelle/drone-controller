@@ -11,6 +11,7 @@ void setup() {
     while (!Serial) {
     }
     Wire.begin();
+    DEVICE_I2C_ASYNCH;
     // Configuration stuff here
     delay(850);
     err = gyro.writeRegister(OPR_MODE, AMG);
@@ -29,14 +30,12 @@ void setup() {
 }
 
 void loop() {
-    while (true) {
-    }
-    uint8_t ready = gyro.readRegister(INT_STA);
-    uint16_t acc[3];
-    if (ready & 1) {
-        for (int i = 0; i < 3; i++) {
-            acc[i] = gyro.readAcc((Axis)i);
-            // Serial.println(acc[i]);
-        }
-    }
+    // uint8_t ready = gyro.readRegister(INT_STA);
+    // uint16_t acc[3];
+    // if (ready & 1) {
+    //     for (int i = 0; i < 3; i++) {
+    //         //acc[i] = gyro.readAcc((Axis)i);
+    //         // Serial.println(acc[i]);
+    //     }
+    // }
 }
