@@ -11,11 +11,9 @@ void setup() {
     while (!Serial) {
     }
     Wire.begin();
-    DEVICE_I2C_ASYNCH;
     // Configuration stuff here
-    delay(850);
+    delay(850); // Startup time for I2C? Not sure if necessary
     err = gyro.writeRegister(OPR_MODE, AMG);
-    delay(30);
     if (err != 0) {
         Serial.println("ERROR: Did not write properly");
         Serial.println(err);
