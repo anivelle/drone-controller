@@ -14,7 +14,7 @@ State nextState;
 uint8_t makeTransition = 0;
 uint8_t calib_state = 0xFF;
 
-mbed::Ticker ticker;
+mbed::LowPowerTicker ticker;
 
 const char *titles[] = {"Heading", "Roll", "Pitch"};
 volatile uint8_t drdy;

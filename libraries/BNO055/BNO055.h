@@ -5,6 +5,7 @@ typedef enum Register {
     ACC_ID,
     MAG_ID,
     GYR_ID,
+    SW_REV_ID_LSB,
     SW_REV_ID_MSB,
     BL_REV_ID,
     PAGE_ID,
@@ -149,9 +150,20 @@ typedef enum Register {
     UNIQUE_IDF
 };
 
-typedef enum Axis { X, Y, Z, W = 0 };
+typedef enum Axis {
+    X,
+    Y,
+    Z,
+    W_QUA = 0,
+    X_QUA,
+    Y_QUA,
+    Z_QUA,
+    HEADING = 0,
+    ROLL,
+    PITCH
+};
 
-typedef enum MODE {
+typedef enum Mode {
     CONFIG,
     ACCONLY,
     MAGONLY,
@@ -167,26 +179,47 @@ typedef enum MODE {
     NDOF
 };
 
+typedef enum Sys_Trigger {
+    SELF_TEST = 1,
+    RST_SYS = 1 << 5,
+    RST_INT = 1 << 6,
+    CLK_SEL = 1 << 7
+};
+
+typedef enum Interrupts {
+    ACC_BSX_DRDY = 1,
+    MAG_DRDY,
+    GYRO_AM = 1 << 2,
+    GYR_HIGH_RATE = 1 << 3,
+    GYR_DRDY = 1 << 4,
+    ACC_HIGH_G = 1 << 5,
+    ACC_AM = 1 << 6,
+    ACC_NM = 8
+};
+
 class BNO055 {
   private:
     uint8_t address;
     uint8_t page;
     TwoWire *wire;
+    Mode mode;
 
   public:
     BNO055(TwoWire *i2c);
 
     // Direct access
-    uint8_t readRegister(Register reg);
+    int16_t readRegister(Register reg);
     size_t writeRegister(Register reg, uint8_t data);
 
+    int changePage(uint8_t page);
+    int changeMode(Mode mode);
     // Raw Data
-    uint16_t readAcc(Axis axis); // Accelerometer
-    uint16_t readMag(Axis axis); // Magnetometer
-    uint16_t readGyr(Axis axis); // Gyroscope
+    int16_t readAcc(Axis axis); // Accelerometer
+    int16_t readMag(Axis axis); // Magnetometer
+    int16_t readGyr(Axis axis); // Gyroscope
 
     // Fusion data
-    uint16_t readQua(Axis axis); // Quaternion data
-    uint16_t readEul(Axis axis); // Euler angles
-    uint16_t readLia(Axis axis); // Linear Acceleration
+    int16_t readQua(Axis axis); // Quaternion data
+    int16_t readEul(Axis axis); // Euler angles
+    int16_t readLia(Axis axis); // Linear Acceleration
 };
