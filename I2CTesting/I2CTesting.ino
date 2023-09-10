@@ -1,12 +1,11 @@
 #include <stdint.h>
 #include <Wire.h>
 #include "BNO055.h"
-#include "mbed.h"
+#include "LowPowerTicker.h"
 
 typedef enum State { CONFIGURING, CALIBRATING, FLYING } State_t;
 BNO055 gyro(&Wire);
 int err;
-unsigned int curTime;
 int units;
 uint8_t calibration;
 State state;
@@ -20,14 +19,13 @@ const char *titles[] = {"Heading", "Roll", "Pitch"};
 volatile uint8_t drdy;
 int angle[3];
 volatile int temp;
-long prevTime;
 
 void timer_callback() {
-    // if (NRF_TIMER1->EVENTS_COMPARE[0]) {
+    // if (NRF_TIMER3->EVENTS_COMPARE[0]) {
     drdy = 1;
-    //    NRF_TIMER1->EVENTS_COMPARE[0] = 0;
-    //    temp = NRF_TIMER1->EVENTS_COMPARE[0];
-    //    temp;
+    //   NRF_TIMER3->EVENTS_COMPARE[0] = 0;
+    //   temp = NRF_TIMER3->EVENTS_COMPARE[0];
+    //   temp;
     //}
 }
 
@@ -41,13 +39,15 @@ void setup() {
     // Configuration stuff here
     delay(850); // Startup time for I2C? Not sure if necessary
 
-    // Timer interrupt for the IMU
-    // NRF_TIMER1->PRESCALER = PWM_PRESCALER_PRESCALER_DIV_32;
-    // NRF_TIMER1->CC[0] = 5000;
-    // NRF_TIMER1->BITMODE = TIMER_BITMODE_BITMODE_16Bit;
-    // NRF_TIMER1->INTENSET = TIMER_INTENSET_COMPARE0_Msk;
-    // NRF_TIMER1->SHORTS = TIMER_SHORTS_COMPARE0_CLEAR_Msk;
-    // NVIC_EnableIRQ(TIMER1_IRQn);
+    // Timer interrupt for the IMU (I still believe)
+    // NRFX_IRQ_DISABLE(TIMER3_IRQn);
+    // NRF_TIMER3->PRESCALER = PWM_PRESCALER_PRESCALER_DIV_32;
+    // NRF_TIMER3->CC[0] = 5000;
+    // NRF_TIMER3->BITMODE = TIMER_BITMODE_BITMODE_16Bit;
+    // NRF_TIMER3->INTENSET |= TIMER_INTENSET_COMPARE0_Msk;
+    // NRF_TIMER3->SHORTS = TIMER_SHORTS_COMPARE0_CLEAR_Msk;
+    // NRFX_IRQ_PRIORITY_SET(TIMER3_IRQn, 7);
+    // NRFX_IRQ_ENABLE(TIMER3_IRQn);
     drdy = 0;
 
     // Ends the config mode
@@ -65,12 +65,11 @@ void setup() {
     }
 
     ticker.attach(&timer_callback, 0.012);
-    curTime = millis();
     units = gyro.readRegister(UNIT_SEL);
     Serial.println("Beginning Calibration");
     makeTransition = 1;
     nextState = CALIBRATING;
-    prevTime = millis();
+    // Serial.println(NRFX_IRQ_IS_ENABLED(TIMER3_IRQn));
 }
 
 void loop() {
@@ -79,19 +78,21 @@ void loop() {
         break;
     case CALIBRATING:
         calibration = gyro.readRegister(CALIB_STAT);
-        if (calibration & (3 << 4) && calib_state & (3 << 4)) {
+        Serial.println(calibration, BIN);
+        if ((calibration & calib_state) & (3 << 4)) {
             calib_state ^= (3 << 4);
             Serial.println("Gyro calibration done");
         }
-        if (calibration & (3 << 2) && calib_state & (3 << 2)) {
+        if ((calibration & calib_state) & (3 << 2)) {
             calib_state ^= (3 << 2);
             Serial.println("Accelerometer calibration done");
         }
-        if (calibration & 3 && calib_state & 3) {
+        if ((calibration & calib_state) & 3) {
             calib_state ^= 3;
             Serial.println("Magnetometer calibration done");
         }
-        if (calibration & (3 << 6)) {
+        if (calibration &
+            (3 << 6) /*|| (~calib_state & 0b111111 == 0b111111)*/) {
             calib_state ^= (3 << 6);
             Serial.println("Done Calibrating");
             nextState = FLYING;
@@ -99,7 +100,6 @@ void loop() {
         }
         break;
     case FLYING:
-        // if (millis() - prevTime > 10) {
         if (drdy) {
             // Serial.println(NRF_TIMER1->CC[1]);
             for (int i = 0; i < 3; i++) {
@@ -113,9 +113,6 @@ void loop() {
                 Serial.println(angle[i]);
             }
             drdy = 0;
-            // NRF_TIMER1->TASKS_CLEAR = 1;
-            // NRF_TIMER1->EVENTS_COMPARE[0] = 0;
-            prevTime = millis();
         }
         break;
     default:
