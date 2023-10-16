@@ -1,10 +1,15 @@
 #include <stdint.h>
+#include <stdio.h>
 #include <Wire.h>
 #include "BNO055.h"
+#include "VL53L4CX.h"
 #include "LowPowerTicker.h"
 
 typedef enum State { CONFIGURING, CALIBRATING, FLYING } State_t;
+
 BNO055 gyro(&Wire);
+VL53L4CX distSensor(&Wire, A1);
+
 int err;
 int units;
 uint8_t calibration;
@@ -17,8 +22,12 @@ mbed::LowPowerTicker ticker;
 
 const char *titles[] = {"Heading", "Roll", "Pitch"};
 volatile uint8_t drdy;
+volatile uint8_t rrdy;
 int angle[3];
 volatile int temp;
+uint8_t ready;
+VL53L4CX_MultiRangingData_t ranging_data;
+int status;
 
 void timer_callback() {
     // if (NRF_TIMER3->EVENTS_COMPARE[0]) {
@@ -28,6 +37,8 @@ void timer_callback() {
     //   temp;
     //}
 }
+
+void ready_callback() { rrdy = 1; }
 
 void setup() {
     state = CONFIGURING;
@@ -50,6 +61,15 @@ void setup() {
     // NRFX_IRQ_ENABLE(TIMER3_IRQn);
     drdy = 0;
 
+    distSensor.begin();
+    distSensor.VL53L4CX_Off();
+    distSensor.InitSensor(0x12);
+    attachInterrupt(A2, ready_callback, FALLING);
+    status = distSensor.VL53L4CX_StartMeasurement();
+
+    if (status) {
+        Serial.println("Failed to init distSensor");
+    }
     // Ends the config mode
     err = gyro.changeMode(NDOF);
     if (err != 0) {
@@ -64,7 +84,7 @@ void setup() {
         Serial.println("We're good");
     }
 
-    ticker.attach(&timer_callback, 0.012);
+    ticker.attach(&timer_callback, 0.5f);
     units = gyro.readRegister(UNIT_SEL);
     Serial.println("Beginning Calibration");
     makeTransition = 1;
@@ -73,6 +93,7 @@ void setup() {
 }
 
 void loop() {
+    int numObjects;
     switch (state) {
     case CONFIGURING:
         break;
@@ -100,8 +121,27 @@ void loop() {
         }
         break;
     case FLYING:
-        if (drdy) {
-            // Serial.println(NRF_TIMER1->CC[1]);
+        // status = distSensor.VL53L4CX_GetMeasurementDataReady(&ready);
+      
+        // Using this condition kinda invalidates the point of the hardware
+        // interrupt (though frankly I'm only doing this to have a slower,
+        // human-readable output). Thinking I might just use the hardware
+        // interrupt as my entire data collection interrupt
+        if (rrdy && drdy) {
+            status = distSensor.VL53L4CX_GetMultiRangingData(&ranging_data);
+            numObjects = ranging_data.NumberOfObjectsFound;
+            Serial.print("Found ");
+            Serial.print(numObjects);
+            Serial.println(" Objects");
+            for (int i = 0; i < numObjects; i++) {
+                char buf[13];
+                sprintf(buf, "Distance %d: ", i);
+                Serial.print(buf);
+                Serial.println(ranging_data.RangeData[i].RangeMilliMeter);
+                Serial.println();
+            }
+            if (!status)
+                distSensor.VL53L4CX_ClearInterruptAndStartMeasurement();
             for (int i = 0; i < 3; i++) {
                 angle[i] = gyro.readEul((Axis)i);
                 if (units & 4)

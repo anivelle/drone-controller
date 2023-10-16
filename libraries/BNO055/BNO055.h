@@ -207,7 +207,9 @@ class BNO055 {
   public:
     BNO055(TwoWire *i2c);
 
-    // Direct access
+    /**
+     * Directly read a register from the BNO055
+     */
     int16_t readRegister(Register reg);
     size_t writeRegister(Register reg, uint8_t data);
 

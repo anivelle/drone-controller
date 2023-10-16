@@ -1,3 +1,5 @@
+#ifndef __VL53L4CX_H
+#define __VL53L4CX_H
 #include <vl53l4cx_class.h>
 #include <vl53l4cx_def.h>
 #include <vl53l4cx_dmax_private_structs.h>
@@ -21,3 +23,4 @@
 #include <vl53l4cx_tuning_parm_defaults.h>
 #include <vl53l4cx_types.h>
 #include <vl53l4cx_xtalk_private_structs.h>
+#endif

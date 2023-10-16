@@ -1,0 +1,7 @@
+{
+  "cpu": {
+    "fqbn": "arduino:mbed_nano:nano33ble",
+    "name": "Nano 33 BLE",
+    "port": "/dev/ttyACM0"
+  }
+}
