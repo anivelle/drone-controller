@@ -20,13 +20,13 @@ volatile uint8_t drdy;
 int angle[3];
 volatile int temp;
 
-void timer_callback() {
-    // if (NRF_TIMER3->EVENTS_COMPARE[0]) {
-    drdy = 1;
-    //   NRF_TIMER3->EVENTS_COMPARE[0] = 0;
-    //   temp = NRF_TIMER3->EVENTS_COMPARE[0];
-    //   temp;
-    //}
+extern "C" void timer_callback() {
+    if (NRF_TIMER3->EVENTS_COMPARE[0]) {
+      drdy = 1;
+       // NRF_TIMER3->EVENTS_COMPARE[0] = 0;
+       // temp = NRF_TIMER3->EVENTS_COMPARE[0];
+       temp;
+    }
 }
 
 void setup() {
@@ -41,13 +41,14 @@ void setup() {
 
     // Timer interrupt for the IMU (I still believe)
     // NRFX_IRQ_DISABLE(TIMER3_IRQn);
-    // NRF_TIMER3->PRESCALER = PWM_PRESCALER_PRESCALER_DIV_32;
-    // NRF_TIMER3->CC[0] = 5000;
-    // NRF_TIMER3->BITMODE = TIMER_BITMODE_BITMODE_16Bit;
-    // NRF_TIMER3->INTENSET |= TIMER_INTENSET_COMPARE0_Msk;
-    // NRF_TIMER3->SHORTS = TIMER_SHORTS_COMPARE0_CLEAR_Msk;
+    NRF_TIMER2->PRESCALER = PWM_PRESCALER_PRESCALER_DIV_32;
+    NRF_TIMER2->CC[0] = 5000;
+    NRF_TIMER2->BITMODE = TIMER_BITMODE_BITMODE_16Bit;
+    NRF_TIMER2->INTENSET |= TIMER_INTENSET_COMPARE0_Msk;
+    NRF_TIMER2->SHORTS = TIMER_SHORTS_COMPARE0_CLEAR_Msk;
     // NRFX_IRQ_PRIORITY_SET(TIMER3_IRQn, 7);
-    // NRFX_IRQ_ENABLE(TIMER3_IRQn);
+    NVIC_SetVector(TIMER2_IRQn, (uint32_t)timer_callback);
+    NRFX_IRQ_ENABLE(TIMER2_IRQn);
     drdy = 0;
 
     // Ends the config mode
@@ -64,7 +65,7 @@ void setup() {
         Serial.println("We're good");
     }
 
-    ticker.attach(&timer_callback, 0.012);
+    //ticker.attach(&timer_callback, 0.012);
     units = gyro.readRegister(UNIT_SEL);
     Serial.println("Beginning Calibration");
     makeTransition = 1;
