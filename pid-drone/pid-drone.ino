@@ -61,15 +61,15 @@ void setup() {
 }
 
 void loop() {
-    curTime = millis();
+    curTime = micros();
     Serial.println("Hello");
     command = 0;
-    if (curTime - prevTime > 100) {
-        if (counter > 10) {
-            command = analogRead(A0) * 2;
-            if (command < 48)
-                command = 48;
-        }
+    if (counter > 10) {
+        command = analogRead(A0) * 2;
+        if (command < 48)
+            command = 48;
+    }
+    if (curTime - prevTime > 200) {
         // Serial.println(command);
         CreateSequence(command, seq);
         NRF_PWM0->SEQ[0].PTR = (uint32_t)&seq;
