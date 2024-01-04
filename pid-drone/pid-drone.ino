@@ -41,10 +41,10 @@ void setup() {
     }
     command = 0;
     CreateSequence(command, seq);
-    pinMode(P1_11, OUTPUT);
+    pinMode(P1_12, OUTPUT);
     pinMode(A0, INPUT);
-    // digitalWrite(P1_11, LOW);
-    NRF_PWM0->PSEL.OUT[0] = P1_11;
+    digitalWrite(P1_11, LOW);
+    NRF_PWM0->PSEL.OUT[0] = P1_12;
     NRF_PWM0->ENABLE = 1;
     NRF_PWM0->MODE = PWM_MODE_UPDOWN_Up;
     NRF_PWM0->COUNTERTOP = 13;
@@ -58,14 +58,15 @@ void setup() {
     NRF_PWM0->SEQ[0].ENDDELAY = 0;
     NRF_PWM0->TASKS_SEQSTART[0] = 1;
     prevTime = millis();
+    command = 0;
 }
 
 void loop() {
     curTime = micros();
     Serial.println("Hello");
-    command = 0;
     if (counter > 10) {
-        command = analogRead(A0) * 2;
+        // command = analogRead(A0) * 2;
+        command = (command+ 1) % 2048;
         if (command < 48)
             command = 48;
     }
