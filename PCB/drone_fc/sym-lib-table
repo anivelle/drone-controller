@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 0)
+  (lib (name "drone_fc-altium-import")(type "KiCad")(uri "${KIPRJMOD}/drone_fc-altium-import.kicad_sym")(options "")(descr ""))
+)
