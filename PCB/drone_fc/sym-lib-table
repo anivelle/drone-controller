@@ -1,7 +1,6 @@
 (sym_lib_table
   (version 7)
   (lib (name "nRF52840")(type "KiCad")(uri "${KIPRJMOD}/nRF52840.kicad_sym")(options "")(descr ""))
-  (lib (name "STM32_PhilsLab_SchSym")(type "KiCad")(uri "${KIPRJMOD}/STM32_PhilsLab_SchSym.kicad_sym")(options " pwr_sym_only")(descr ""))
+  (lib (name "STM32_PhilsLab_SchSym")(type "KiCad")(uri "${KIPRJMOD}/STM32_PhilsLab_SchSym.kicad_sym")(options "")(descr ""))
   (lib (name "BNO055")(type "KiCad")(uri "${KIPRJMOD}/BNO055.kicad_sym")(options "")(descr ""))
-  (lib (name "ICM-20948")(type "KiCad")(uri "${KIPRJMOD}/ICM-20948.kicad_sym")(options "")(descr ""))
 )
