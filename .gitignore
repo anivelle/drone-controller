@@ -1,2 +1,7 @@
 **/build/
 **/.cache/
+/UnitySim/Drone\ Sim/Library
+/UnitySim/Drone\ Sim/Logs
+/UnitySim/Drone\ Sim/obj
+/UnitySim/Drone\ Sim/UserSettings
+/PCB/drone_fc/nrf52840_files/Production\ files/

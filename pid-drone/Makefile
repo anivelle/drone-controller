@@ -3,3 +3,4 @@ all:
 
 upload:
 	arduino-cli upload -b arduino:mbed_nano:nano33ble -v --input-dir ./build -p /dev/ttyACM0
+
