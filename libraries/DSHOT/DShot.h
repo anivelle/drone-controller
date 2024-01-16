@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define SEQ_SIZE 17
+#define SEQ_SIZE 17 * 4
 #define TELEMETRY_BIT 0
 
 /**
@@ -12,6 +12,6 @@
  */
 void CalcChecksum(uint16_t *command);
 
-void CreateSequence(uint16_t command[4], uint16_t sequence[SEQ_SIZE * 4]);
+void CreateSequence(uint16_t command[4], uint16_t sequence[SEQ_SIZE]);
 
 #endif

@@ -2,8 +2,9 @@
 #define PWM_H
 #include <stdint.h>
 #include "mbed.h"
+#include "DShot.h"
 
-void PWM_Init(uint32_t seqSize, uint16_t *seqPtr);
+void PWM_Init(uint32_t seqAddr);
 
 /**
  * Connects a digital pin to the PWM module
@@ -12,5 +13,5 @@ void PWM_Init(uint32_t seqSize, uint16_t *seqPtr);
  */
 int PWM_AddPins(uint8_t channel, PinName pin);
 
-void PWM_SendCommand();
+void PWM_SendCommand(uint32_t addr);
 #endif

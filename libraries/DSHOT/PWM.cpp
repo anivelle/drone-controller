@@ -1,6 +1,6 @@
 #include "PWM.h"
 
-void PWM_Init(uint32_t seqSize, uint16_t *seqPtr) {
+void PWM_Init(uint32_t seqAddr) {
     NRF_PWM0->ENABLE = 1;
 
     NRF_PWM0->MODE = PWM_MODE_UPDOWN_Up;
@@ -10,8 +10,8 @@ void PWM_Init(uint32_t seqSize, uint16_t *seqPtr) {
     NRF_PWM0->DECODER = PWM_DECODER_LOAD_Individual |
                         (PWM_DECODER_MODE_RefreshCount << PWM_DECODER_MODE_Pos);
     // I think this may be okay just being set once
-    NRF_PWM0->SEQ[0].PTR = (uint32_t)seqPtr;
-    NRF_PWM0->SEQ[0].CNT = seqSize * 4;
+    NRF_PWM0->SEQ[0].PTR = (uint32_t)seqAddr;
+    NRF_PWM0->SEQ[0].CNT = SEQ_SIZE;
     NRF_PWM0->SEQ[0].REFRESH = 0;
     NRF_PWM0->SEQ[0].ENDDELAY = 0;
 }
@@ -30,4 +30,7 @@ int PWM_AddPins(uint8_t channel, PinName pin) {
     return 0;
 }
 
-void PWM_SendCommand() { NRF_PWM0->TASKS_SEQSTART[0] = 1; }
+void PWM_SendCommand(uint32_t addr) {
+    NRF_PWM0->SEQ[0].PTR = addr;
+    NRF_PWM0->TASKS_SEQSTART[0] = 1;
+}
