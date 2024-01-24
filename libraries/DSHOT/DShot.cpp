@@ -13,7 +13,7 @@ void CreateSequence(uint16_t command[4], uint16_t sequence[SEQ_SIZE * 4]) {
         temp[i] = (temp[i] << 1) | TELEMETRY_BIT;
         CalcChecksum(&temp[i]);
     }
-    int j;
+
     /* Send LSB last
      * 0 is a duty cycle of 5, 1 is a duty cycle of 10, so I simply multiply
      * 5 by 1 or 2, depending on whether the ith bit of command is 1.
@@ -23,7 +23,7 @@ void CreateSequence(uint16_t command[4], uint16_t sequence[SEQ_SIZE * 4]) {
      * technically quick commands.
      */
     for (int i = 15; i >= 0; i--) {
-        for (j = 0; j < 4; j++) {
+        for (int j = 0; j < 4; j++) {
             sequence[((15 - i) << 2) + j] =
                 (5 * (1 << ((temp[j] >> i) & 1))) | (1 << 15);
         }
