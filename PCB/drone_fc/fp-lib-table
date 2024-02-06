@@ -2,4 +2,6 @@
   (version 7)
   (lib (name "nRF52840")(type "KiCad")(uri "${KIPRJMOD}/nRF52840.pretty")(options "")(descr ""))
   (lib (name "STM32_PhilsLab_SchFoot")(type "KiCad")(uri "${KIPRJMOD}/STM32_PhilsLab_SchFoot.pretty")(options "")(descr ""))
+  (lib (name "BSD840N")(type "KiCad")(uri "${KIPRJMOD}/BSD840N/footprints.pretty")(options "")(descr ""))
+  (lib (name "MiscPads")(type "KiCad")(uri "${KIPRJMOD}/MiscPads.pretty")(options "")(descr ""))
 )

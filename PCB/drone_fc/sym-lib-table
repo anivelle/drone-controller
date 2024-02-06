@@ -3,4 +3,5 @@
   (lib (name "nRF52840")(type "KiCad")(uri "${KIPRJMOD}/nRF52840.kicad_sym")(options "")(descr ""))
   (lib (name "STM32_PhilsLab_SchSym")(type "KiCad")(uri "${KIPRJMOD}/STM32_PhilsLab_SchSym.kicad_sym")(options "")(descr ""))
   (lib (name "BNO055")(type "KiCad")(uri "${KIPRJMOD}/BNO055.kicad_sym")(options "")(descr ""))
+  (lib (name "BSD840N")(type "KiCad")(uri "${KIPRJMOD}/BSD840N/2024-01-27_09-37-07.kicad_sym")(options "")(descr ""))
 )
