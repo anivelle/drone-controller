@@ -5,3 +5,9 @@
 /UnitySim/Drone\ Sim/obj
 /UnitySim/Drone\ Sim/UserSettings
 /PCB/drone_fc/nrf52840_files/Production\ files/
+zephyr/.west
+zephyr/modules
+zephyr/bootloader
+zephyr/tools
+**/.venv/lib/
+**/.venv/bin/
