@@ -3,6 +3,10 @@
 #include "vl53lx_class.h"
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/sys/printk.h>
+#include <zephyr/usb/usb_device.h>
+#include <zephyr/usb/usbd.h>
+#include <zephyr/drivers/uart.h>
 #include "nrf52840.h"
 
 VL53LX sensor(&Wire, D15);
@@ -12,19 +16,29 @@ VL53LX_MultiRangingData_t rangeData;
 
 int main(void) {
 
-    Serial.begin(115200);
+    if (usb_enable(NULL))
+      return 0;
+
+    // Serial.begin(115200);
+
     // This causes the PWM output to wait until I open a serial monitor,
     // which may or may not be desirable
-    while (!Serial) {
-        ;
+    
+    uint32_t dtr = 0;
+    const struct device *const dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+    while (!dtr) {
+      uart_line_ctrl_get(dev, UART_LINE_CTRL_DTR, &dtr);
+      /* Give CPU resources to low priority threads. */
+      k_sleep(K_MSEC(100));
     }
+
     Wire.begin();
     sensor.begin();
     sensor.VL53LX_Off();
     sensor.InitSensor(0x12);
 
     sensor.VL53LX_StartMeasurement();
-    Serial.println("Done initializing");
+    printk("Done initializing\n");
     prevTime = millis();
     while (1) {
     status = sensor.VL53LX_GetMeasurementDataReady(&dataReady);
@@ -34,9 +48,9 @@ int main(void) {
             char text[25];
             sprintf(text, "Found %1d: Distance %4d", i,
                     rangeData.RangeData[i].RangeMilliMeter);
-            Serial.println(text);
+            printk("%s\n", text);
         }
-        Serial.println();
+        printk("\n");
         // This is an important line (for some reason)!
         status = sensor.VL53LX_ClearInterruptAndStartMeasurement();
     }
