@@ -11,3 +11,4 @@ zephyr/bootloader
 zephyr/tools
 **/.venv/lib/
 **/.venv/bin/
+**/drone_fc-backups/

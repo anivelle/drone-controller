@@ -21,8 +21,6 @@ int main(void) {
 
     // Serial.begin(115200);
 
-    // This causes the PWM output to wait until I open a serial monitor,
-    // which may or may not be desirable
     
     uint32_t dtr = 0;
     const struct device *const dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
@@ -39,7 +37,6 @@ int main(void) {
 
     sensor.VL53LX_StartMeasurement();
     printk("Done initializing\n");
-    prevTime = millis();
     while (1) {
     status = sensor.VL53LX_GetMeasurementDataReady(&dataReady);
     if (!status && (dataReady != 0)) {

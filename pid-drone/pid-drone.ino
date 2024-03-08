@@ -21,6 +21,8 @@ VL53L4CX distanceSensor(&Wire, A1);
 
 uint8_t dataReady;
 int status;
+uint16_t prevTime, curTime;
+
 void setup() {
     // distanceSensor.VL53L4CX_WaitDeviceBooted();
     // distanceSensor.VL53L4CX_DataInit();
