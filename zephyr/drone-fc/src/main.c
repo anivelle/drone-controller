@@ -24,10 +24,11 @@ struct k_thread gyro_thread_data;
 
 extern void read_icm20948_data(void *dev, void *unused2, void *unused3) {
     const struct device *const i2c_dev = (const struct device *const)dev;
+    printk("Thread has been called\n");
     if (!k_sem_take(&icm20948_ready, K_FOREVER)) {
         uint16_t bytes_ready = 0;
         icm20948_get_fifo_count(i2c_dev, &bytes_ready);
-        printf("FIFO count: %d", bytes_ready);
+        printk("FIFO count: %d\n", bytes_ready);
         icm20948_read_fifo(i2c_dev, icm20948_fifo_buffer, bytes_ready);
         uint8_t dummy;
         icm20948_readregister(i2c_dev, ICM20948_INT_STATUS, &dummy);
