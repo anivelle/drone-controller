@@ -2,8 +2,10 @@
 #define ICM20948_H
 
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/kernel.h>
 
 #define ICM20948_ADDRESS 0x69
+#define FIFO_SIZE 512
 
 // USER_CTRL register settings (p. 36)
 #define DMP_EN (1 << 7)      // Enable DMP (Digital Motion Processor)
@@ -15,13 +17,13 @@
 #define I2C_MST_RST (1 << 1) // Reset I2C controller module (bit auto-clears)
 
 // INT_PIN_CFG settings
-#define INT1_ACTL (1 << 7)          // Interrupt pin is active low
-#define INT1_OPEN (1 << 6)          // Interrupt pin is open drain (not push-pull)
-#define INT1_LATCH_EN (1 << 5)      // Interrupt is held until cleared
-#define INT_ANYRD_2CLEAR (1 << 4)   // Interrupt is cleared by any read operation
-#define ACTL_FSYNC (1 << 3)         // FSYNC (p. 25) is active low
-#define FSYNC_INT_MODE_EN (1 << 2)  // FSYNC can be used as an interrupt
-#define BYPASS_EN (1 << 1)          // I2C_MST interface is put into bypass mode
+#define INT1_ACTL (1 << 7)        // Interrupt pin is active low
+#define INT1_OPEN (1 << 6)        // Interrupt pin is open drain (not push-pull)
+#define INT1_LATCH_EN (1 << 5)    // Interrupt is held until cleared
+#define INT_ANYRD_2CLEAR (1 << 4) // Interrupt is cleared by any read operation
+#define ACTL_FSYNC (1 << 3)       // FSYNC (p. 25) is active low
+#define FSYNC_INT_MODE_EN (1 << 2) // FSYNC can be used as an interrupt
+#define BYPASS_EN (1 << 1)         // I2C_MST interface is put into bypass mode
 
 // INT_ENABLE settings
 #define REG_WOF_EN (1 << 7)     // Enable wake on FSYNC interrupt
@@ -37,15 +39,15 @@
 #define SLV_0_FIFO_EN (1 << 0)
 
 // FIFO_EN_2 settings
-#define ACCEL_FIFO_EN   (1 << 4)  // Writes all acceleration data to FIFO
-#define GYRO_Z_FIFO_EN  (1 << 3)  // Writes gyro Z-axis data to FIFO
-#define GYRO_Y_FIFO_EN  (1 << 2)  // Writes gyro Y-axis data to FIFO
-#define GYRO_X_FIFO_EN  (1 << 1)  // Writes gyro X-axis data to FIFO
-#define TEMP_FIFO_EN    (1 << 0)  // Writes temperature data to FIFO 
+#define ACCEL_FIFO_EN (1 << 4)  // Writes all acceleration data to FIFO
+#define GYRO_Z_FIFO_EN (1 << 3) // Writes gyro Z-axis data to FIFO
+#define GYRO_Y_FIFO_EN (1 << 2) // Writes gyro Y-axis data to FIFO
+#define GYRO_X_FIFO_EN (1 << 1) // Writes gyro X-axis data to FIFO
+#define TEMP_FIFO_EN (1 << 0)   // Writes temperature data to FIFO
 
-// FIFO_RST and FIFO_MODE settings 
-#define FIFO_RESET (1 << 0)   // Resets the FIFO. Hold to set FIFO size to 0
-#define FIFO_MODE (1 << 0)    // Stream - Additional writes override FIFO data
+// FIFO_RST and FIFO_MODE settings
+#define FIFO_RESET (1 << 0) // Resets the FIFO. Hold to set FIFO size to 0
+#define FIFO_MODE (1 << 0)  // Stream - Additional writes override FIFO data
 
 // Ignoring most of the other register settings for now
 
@@ -118,14 +120,24 @@ enum icm20948_register_0 {
     ICM20948_REG_BANK_SEL = 127
 };
 
-
 int icm20948_userconfig(const struct device *dev, const uint8_t mode);
 int icm20948_set_int(const struct device *dev, const uint8_t intmode);
 
-int icm20948_setregister(const struct device *dev, const uint8_t reg, const uint8_t data);
-int icm20948_readregister(const struct device *dev, const uint8_t reg, uint8_t *buf);
+int icm20948_setregister(const struct device *dev, const uint8_t reg,
+                         const uint8_t data);
+int icm20948_readregister(const struct device *dev, const uint8_t reg,
+                          uint8_t *buf);
 
 int icm20948_get_fifo_count(const struct device *dev, uint16_t *buf);
-int icm20948_read_fifo(const struct device *dev, uint8_t *buf, const uint8_t count);
+int icm20948_read_fifo(const struct device *dev, uint8_t *buf,
+                       const uint8_t count);
 
+// Semaphore and callback for threading/interrupts
+extern struct k_sem icm20948_ready;
+
+/*
+ * Use this function to enable the relevant GPIO interrupt, passing to it a
+ * user-defined callback with the signature `void isr(const void *args)`
+ */
+void icm20948_use_interrupts(void (*isr)(const void *));
 #endif

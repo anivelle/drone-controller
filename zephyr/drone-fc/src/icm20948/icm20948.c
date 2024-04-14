@@ -2,6 +2,7 @@
 
 // After writing these I notice that they're really just wrappers haha
 
+struct k_sem icm20948_ready;
 int icm20948_userconfig(const struct device *dev, const uint8_t mode) {
     return icm20948_setregister(dev, ICM20948_USER_CTRL, mode);
 }
@@ -26,4 +27,10 @@ int icm20948_read_fifo(const struct device *dev, uint8_t *buf, uint8_t count) {
 int icm20948_get_fifo_count(const struct device *dev, uint16_t *count) {
     return i2c_burst_read(dev, ICM20948_ADDRESS, ICM20948_FIFO_COUNTH,
                           (uint8_t *)count, 2);
+}
+
+void icm20948_use_interrupts(void (*isr)(const void *)) {
+  irq_connect_dynamic(GPIOTE_IRQn, 2, isr, (void *)NULL, 0);
+  irq_enable(GPIOTE_IRQn);
+  k_sem_init(&icm20948_ready, 0, 1);
 }
