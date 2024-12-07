@@ -4,4 +4,6 @@
   (lib (name "STM32_PhilsLab_SchFoot")(type "KiCad")(uri "${KIPRJMOD}/STM32_PhilsLab_SchFoot.pretty")(options "")(descr ""))
   (lib (name "BSD840N")(type "KiCad")(uri "${KIPRJMOD}/BSD840N/footprints.pretty")(options "")(descr ""))
   (lib (name "MiscPads")(type "KiCad")(uri "${KIPRJMOD}/MiscPads.pretty")(options "")(descr ""))
+  (lib (name "KS_TSSLE-6868R")(type "KiCad")(uri "${KIPRJMOD}/KS_TSSLE-6868R.pretty")(options "")(descr ""))
+  (lib (name "footprints")(type "KiCad")(uri "${KIPRJMOD}/footprints.pretty")(options "")(descr ""))
 )
