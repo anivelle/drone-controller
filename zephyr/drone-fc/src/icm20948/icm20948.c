@@ -8,6 +8,8 @@ int icm20948_userconfig(const struct device *dev, const uint8_t mode) {
 }
 
 int icm20948_set_int(const struct device *dev, const uint8_t intmode) {
+    // Latch interrupt status until the INT_STATUS register is read
+    icm20948_setregister(dev, ICM20948_INT_PIN_CFG, INT1_LATCH_EN);
     return icm20948_setregister(dev, ICM20948_INT_ENABLE, intmode);
 }
 
@@ -20,6 +22,7 @@ int icm20948_readregister(const struct device *dev, const uint8_t reg,
                           uint8_t *buf) {
     return i2c_reg_read_byte(dev, ICM20948_ADDRESS, reg, buf);
 }
+
 int icm20948_read_fifo(const struct device *dev, uint8_t *buf, uint8_t count) {
     return i2c_burst_read(dev, ICM20948_ADDRESS, ICM20948_FIFO_R_W, buf, count);
 }
@@ -30,7 +33,10 @@ int icm20948_get_fifo_count(const struct device *dev, uint16_t *count) {
 }
 
 void icm20948_use_interrupts(void (*isr)(const void *)) {
+  // gpio_pin_interrupt_configure_dt(&int_pin, GPIO_INT_EDGE_RISING);
+  // gpio_init_callback(&icm20948_callback, handler, (1 << 4));
+  // gpio_add_callback_dt(&int_pin, &icm20948_callback);
   irq_connect_dynamic(GPIOTE_IRQn, 2, isr, (void *)NULL, 0);
   irq_enable(GPIOTE_IRQn);
-  k_sem_init(&icm20948_ready, 0, 1);
+  k_sem_init(&icm20948_ready, 1, 1);
 }

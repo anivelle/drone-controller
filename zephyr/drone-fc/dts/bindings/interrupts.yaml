@@ -1,0 +1,10 @@
+description: GPIO pin to act as an IMU interrupt
+
+compatible: "interrupts"
+
+properties:
+  gpios:
+    type: phandle-array
+    required: true
+    description: |
+      The GPIO connected to the interrupt IMU.

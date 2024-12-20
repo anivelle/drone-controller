@@ -1,0 +1,7 @@
+/* #include <zephyr/drivers/gpio.h> */
+/* / { */
+/* 	int0: int_0 { */
+/* 		compatible = "interrupts"; */
+/* 		gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>; */
+/* 	}; */
+/* }; */
