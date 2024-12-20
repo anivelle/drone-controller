@@ -3,15 +3,8 @@
 
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/device.h>
-// #include <zephyr/devicetree.h>
-// #include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
 
-// #define INT0_NODE DT_NODELABEL(int0)
-//
-// static const struct gpio_dt_spec int_pin = GPIO_DT_SPEC_GET_OR(INT0_NODE, gpios, {0});
-//
-// static struct gpio_callback icm20948_callback;
 
 #define ICM20948_ADDRESS 0x69
 #define FIFO_SIZE 512

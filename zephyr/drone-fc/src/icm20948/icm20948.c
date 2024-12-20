@@ -33,10 +33,11 @@ int icm20948_get_fifo_count(const struct device *dev, uint16_t *count) {
 }
 
 void icm20948_use_interrupts(void (*isr)(const void *)) {
-  // gpio_pin_interrupt_configure_dt(&int_pin, GPIO_INT_EDGE_RISING);
-  // gpio_init_callback(&icm20948_callback, handler, (1 << 4));
-  // gpio_add_callback_dt(&int_pin, &icm20948_callback);
-  irq_connect_dynamic(GPIOTE_IRQn, 2, isr, (void *)NULL, 0);
-  irq_enable(GPIOTE_IRQn);
-  k_sem_init(&icm20948_ready, 1, 1);
+    // NRF_GPIOTE->CONFIG[0] =
+    //     ((1 << GPIOTE_CONFIG_POLARITY_Pos) | (4 << GPIOTE_CONFIG_PSEL_Pos) |
+    //      (1 << GPIOTE_CONFIG_MODE_Pos));
+    // NRF_GPIOTE->INTENSET = 1;
+    irq_connect_dynamic(GPIOTE_IRQn, 2, isr, (void *)NULL, 0);
+    irq_enable(GPIOTE_IRQn);
+    k_sem_init(&icm20948_ready, 1, 1);
 }
