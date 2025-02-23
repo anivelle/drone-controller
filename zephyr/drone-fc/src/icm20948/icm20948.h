@@ -18,6 +18,13 @@
 #define SRAM_RST (1 << 2)    // Reset SRAM (bit auto-clears)
 #define I2C_MST_RST (1 << 1) // Reset I2C controller module (bit auto-clears)
 
+// PWR_MGMT_1 register settings
+#define DEVICE_RESET (1 << 7)   // Reset internal registers (bit auto-clears)
+#define SLEEP (1 << 6)          // Clear this bit to wake device from sleep
+#define LP_EN (1 << 5)          // Turn on low power mode
+#define TEMP_DIS (1 << 3)       // Disable temperature sensor
+#define CLK_SEL (1 << 0)        // 3-bit clock source. See page 37 for options
+
 // INT_PIN_CFG settings
 #define INT1_ACTL (1 << 7)        // Interrupt pin is active low
 #define INT1_OPEN (1 << 6)        // Interrupt pin is open drain (not push-pull)

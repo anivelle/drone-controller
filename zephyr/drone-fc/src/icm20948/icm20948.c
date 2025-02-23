@@ -28,8 +28,14 @@ int icm20948_read_fifo(const struct device *dev, uint8_t *buf, uint8_t count) {
 }
 
 int icm20948_get_fifo_count(const struct device *dev, uint16_t *count) {
-    return i2c_burst_read(dev, ICM20948_ADDRESS, ICM20948_FIFO_COUNTH,
-                          (uint8_t *)count, 2);
+    
+    uint8_t err;
+    err = i2c_reg_read_byte(dev, ICM20948_ADDRESS, ICM20948_FIFO_COUNTH, &((uint8_t *)count)[1]);
+    err |= i2c_reg_read_byte(dev, ICM20948_ADDRESS, ICM20948_FIFO_COUNTL, &((uint8_t *)count)[0]);
+    return err;
+
+    // return i2c_burst_read(dev, ICM20948_ADDRESS, ICM20948_FIFO_COUNTH,
+    //                       (uint8_t *)count, 2);
 }
 
 void icm20948_use_interrupts(void (*isr)(const void *)) {
