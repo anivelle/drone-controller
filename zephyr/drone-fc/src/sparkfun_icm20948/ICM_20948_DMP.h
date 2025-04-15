@@ -9,10 +9,6 @@ This file contains a useful c translation of the DMP register map
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif /* __cplusplus */
 
 #define DMP_START_ADDRESS ((unsigned short)0x1000)
 #define DMP_MEM_BANK_SIZE 256
@@ -688,8 +684,5 @@ extern "C"
     uint16_t Footer; // Gyro count?
   } icm_20948_DMP_data_t;
 
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
 
 #endif /* _ICM_20948_REGISTERS_H_ */

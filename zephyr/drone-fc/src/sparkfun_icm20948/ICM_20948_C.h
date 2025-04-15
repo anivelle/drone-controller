@@ -17,16 +17,12 @@ The imementation of the interface is flexible
 #include "AK09916_ENUMERATIONS.h"
 #include "ICM_20948_DMP.h"
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif /* __cplusplus */
 
 extern int memcmp(const void *, const void *, size_t); // Avoid compiler warnings
 
 // Define if the DMP will be supported
 // Note: you must have 14290/14301 Bytes of program memory available to store the DMP firmware!
-//#define ICM_20948_USE_DMP // Uncomment this line to enable DMP support. You can of course use ICM_20948_USE_DMP as a compiler flag too
+#define ICM_20948_USE_DMP // Uncomment this line to enable DMP support. You can of course use ICM_20948_USE_DMP as a compiler flag too
 
 // There are two versions of the InvenSense DMP firmware for the ICM20948 - with slightly different sizes
 #define DMP_CODE_SIZE 14301 /* eMD-SmartMotion-ICM20948-1.1.0-MP */
@@ -298,9 +294,5 @@ extern int memcmp(const void *, const void *, size_t); // Avoid compiler warning
   // Operate the I2C master in duty-cycled mode
   myICM.setSampleMode( (ICM_20948_Internal_Mst | ICM_20948_Internal_Gyr), ICM_20948_Sample_Mode_Cycled ); // options: ICM_20948_Sample_Mode_Continuous or ICM_20948_Sample_Mode_Cycled
 */
-
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
 
 #endif /* _ICM_20948_C_H_ */
