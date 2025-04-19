@@ -12,6 +12,8 @@
 #define DEFAULT_STACK 512
 #define ICM_ADDR ICM_20948_I2C_ADDR_AD1
 
+const uint8_t MAX_MAGNETOMETER_STARTS = 10;
+
 BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart),
              "Console device is not ACM CDC UART device");
 // Data buffer
@@ -25,6 +27,11 @@ BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart),
 ICM_20948_Status_e write(uint8_t reg, uint8_t *data, uint32_t len, void *user);
 ICM_20948_Status_e read(uint8_t reg, uint8_t *buff, uint32_t len, void *user);
 ICM_20948_Status_e initializeDMP(ICM_20948_Device_t *pdev);
+ICM_20948_Status_e setup_IMU(ICM_20948_Device_t *pdev,
+                             ICM_20948_Serif_t *serif);
+ICM_20948_Status_e startupDefault(ICM_20948_Device_t *pdev, bool minimal);
+ICM_20948_Status_e startupMagnetometer(ICM_20948_Device_t *pdev, bool minimal);
+ICM_20948_Status_e readMagnetometer(ICM_20948_Device_t *pdev, AK09916_Reg_Addr_e reg, uint8_t *data);
 
 K_THREAD_STACK_DEFINE(gyro_stack_area, DEFAULT_STACK);
 struct k_thread gyro_thread_data;
@@ -71,34 +78,31 @@ int main(void) {
     ICM_20948_Device_t pdev;
     ICM_20948_init_struct(&pdev);
 
-    pdev._dmp_firmware_available = true;
     ICM_20948_Serif_t serif = {
         .read = read, .write = write, .user = (void *)i2c_dev};
-    ICM_20948_link_serif(&pdev, &serif);
+    int err = setup_IMU(&pdev, &serif);
+    printk("Setup error %d\n", err);
 
     // This was just to check that I was interfacing properly
     uint8_t test;
-    int err = ICM_20948_get_who_am_i(&pdev, &test);
+    err = ICM_20948_get_who_am_i(&pdev, &test);
     // printk("Error %d: %X\n", err, test);
 
-    ICM_20948_sw_reset(&pdev);
-    k_sleep(K_MSEC(250));
+    // ICM_20948_sw_reset(&pdev);
+    k_sleep(K_MSEC(500));
     err = initializeDMP(&pdev);
     // printk("Initialized DMP %d\n", err);
 
     err = inv_icm20948_enable_dmp_sensor(&pdev, INV_ICM20948_SENSOR_ORIENTATION,
-                                   true);
+                                         true);
     // printk("DMP Sens %d\n", err);
     err = inv_icm20948_set_dmp_sensor_period(&pdev, DMP_ODR_Reg_Quat9, 0);
-    // err = ICM_20948_low_power(&pdev, false);
-    // printk("DMP ODR %d\n", err);
-    // printk("Enabling DMP %d\n", err);
+
     ICM_20948_enable_FIFO(&pdev, true);
     err = ICM_20948_enable_DMP(&pdev, true);
     // printk("Enabling DMP %d\n", err);
     ICM_20948_reset_DMP(&pdev);
     ICM_20948_reset_FIFO(&pdev);
-    ICM_20948_low_power(&pdev, false);
     uint16_t count;
     icm_20948_DMP_data_t data;
     // k_sem_give(&icm20948_ready);
@@ -118,9 +122,9 @@ int main(void) {
 
     // printk("User config done\n");
     while (1) {
-        ICM_20948_get_FIFO_count(&pdev, &count);
+        // ICM_20948_get_FIFO_count(&pdev, &count);
         ICM_20948_Status_e data_ready = ICM_20948_Stat_Err;
-        if (count != 0)
+        if (ICM_20948_data_ready(&pdev) == ICM_20948_Stat_Ok)
             data_ready = inv_icm20948_read_dmp_data(&pdev, &data);
         // printf("FIFO count: %d\n", count);
         // printf("Data ready? %d\n", data_ready);
@@ -134,10 +138,13 @@ int main(void) {
             double q3 = ((double)data.Quat9.Data.Q3) /
                         1073741824.0; // Convert to double. Divide by 2^30
             double q0 = sqrt(1.0 - ((q1 * q1) + (q2 * q2) + (q3 * q3)));
-            printf("{\"quat_w\":%f,\"quat_x\":%f,\"quat_y\":%f,\"quat_z\":%f}\n", q0, q1, q2, q3);
+            printf(
+                "{\"quat_w\":%f,\"quat_x\":%f,\"quat_y\":%f,\"quat_z\":%f}\n",
+                q0, q1, q2, q3);
             // printf("Accuracy: %u\n", data.Quat9.Data.Accuracy);
         }
-        k_sleep(K_MSEC(50));
+        if (data_ready != ICM_20948_Stat_FIFOMoreDataAvail)
+          k_sleep(K_MSEC(10));
     }
 
     // Enables DMP interrupts
@@ -168,9 +175,109 @@ ICM_20948_Status_e write(uint8_t reg, uint8_t *data, uint32_t len, void *user) {
 
 ICM_20948_Status_e read(uint8_t reg, uint8_t *buff, uint32_t len, void *user) {
     const struct device *const i2c_dev = (const struct device *const)user;
-    if (!i2c_burst_read(i2c_dev, ICM_ADDR, reg, buff, len))
+
+    if (!i2c_write_read(i2c_dev, ICM_ADDR, &reg, 1, buff, len))
         return ICM_20948_Stat_Ok;
     return ICM_20948_Stat_Err;
+}
+
+
+ICM_20948_Status_e readMagnetometer(ICM_20948_Device_t *pdev, AK09916_Reg_Addr_e reg, uint8_t *data){ 
+  
+  return ICM_20948_i2c_master_single_r(pdev, MAG_AK09916_I2C_ADDR, reg, data);
+}
+
+ICM_20948_Status_e magWhoAmI(ICM_20948_Device_t *pdev) {
+    uint8_t whoami1, whoami2;
+    ICM_20948_Status_e retval;
+
+    retval = readMagnetometer(pdev, AK09916_REG_WIA1, &whoami1);
+    if (retval != ICM_20948_Stat_Ok)
+        return retval;
+
+    retval = readMagnetometer(pdev, AK09916_REG_WIA2, &whoami2);
+    if (retval != ICM_20948_Stat_Ok)
+        return retval;
+    
+    if ((whoami1 == (MAG_AK09916_WHO_AM_I >> 8)) && (whoami2 == (MAG_AK09916_WHO_AM_I & 0xFF)))
+      return ICM_20948_Stat_Ok;
+    return ICM_20948_Stat_WrongID;
+}
+ICM_20948_Status_e startupMagnetometer(ICM_20948_Device_t *pdev, bool minimal) {
+    ICM_20948_Status_e retval;
+    ICM_20948_i2c_master_passthrough(pdev, false);
+    ICM_20948_i2c_master_enable(pdev, true);
+
+    // Sparkfun puts this in a resetMag() function, may be used later
+    uint8_t SRST = 1;
+    ICM_20948_i2c_master_single_w(pdev, MAG_AK09916_I2C_ADDR, AK09916_REG_CNTL3,
+                                  &SRST);
+
+    uint8_t tries = 0;
+    while (tries < MAX_MAGNETOMETER_STARTS) {
+        tries++;
+        retval = magWhoAmI(pdev);
+        if (retval == ICM_20948_Stat_Ok)
+          break;
+        ICM_20948_i2c_master_reset(pdev);
+        k_sleep(K_MSEC(10));
+    }
+    if (tries == MAX_MAGNETOMETER_STARTS) {
+      return ICM_20948_Stat_WrongID;
+    }
+    if (minimal)
+      return ICM_20948_Stat_Ok;
+    // Same as startupDefault, there is more but I am doing minimal startup
+    return ICM_20948_Stat_Ok;
+}
+
+ICM_20948_Status_e startupDefault(ICM_20948_Device_t *pdev, bool minimal) {
+    ICM_20948_Status_e retval;
+    retval = ICM_20948_check_id(pdev);
+    if (retval != ICM_20948_Stat_Ok)
+        return retval;
+
+    retval = ICM_20948_sw_reset(pdev);
+    if (retval != ICM_20948_Stat_Ok)
+        return retval;
+
+    k_sleep(K_MSEC(50));
+
+    retval = ICM_20948_sleep(pdev, false);
+    if (retval != ICM_20948_Stat_Ok)
+        return retval;
+
+    retval = ICM_20948_low_power(pdev, false);
+    if (retval != ICM_20948_Stat_Ok)
+        return retval;
+
+    retval = startupMagnetometer(pdev, minimal);
+    if (minimal)
+        return retval;
+    return retval;
+    // There is more to the startup but I'm doing the minimal startup only for
+    // now
+}
+// Copying the Sparkfun begin() function
+ICM_20948_Status_e setup_IMU(ICM_20948_Device_t *pdev,
+                             ICM_20948_Serif_t *serif) {
+#if defined(ICM_20948_USE_DMP)
+    pdev->_dmp_firmware_available = true;
+#else
+    pdev->_dmp_firmware_available = false;
+#endif
+    ICM_20948_link_serif(pdev, serif);
+    pdev->_firmware_loaded = false;
+    pdev->_last_bank = 255;
+    pdev->_last_mems_bank = 255;
+    pdev->_gyroSF = 0;
+    pdev->_gyroSFpll = 0;
+    pdev->_enabled_Android_0 = 0;
+    pdev->_enabled_Android_1 = 0;
+    pdev->_enabled_Android_intr_0 = 0;
+    pdev->_enabled_Android_intr_1 = 0;
+
+    return startupDefault(pdev, pdev->_dmp_firmware_available);
 }
 
 /* DMP has a whole initialization. Sparkfun doesn't provide this in the C files.
@@ -241,11 +348,11 @@ ICM_20948_Status_e initializeDMP(ICM_20948_Device_t *pdev) {
     // Set accel sample rate divider with ACCEL_SMPLRT_DIV_2
     ICM_20948_smplrt_t mySmplrt;
     // mySmplrt.g =
-        // 19; // ODR is computed as follows: 1.1 kHz/(1+GYRO_SMPLRT_DIV[7:0]). 19
-            // = 55Hz. InvenSense Nucleo example uses 19 (0x13).
+    // 19; // ODR is computed as follows: 1.1 kHz/(1+GYRO_SMPLRT_DIV[7:0]). 19
+    // = 55Hz. InvenSense Nucleo example uses 19 (0x13).
     // mySmplrt.a =
-        // 19; // ODR is computed as follows: 1.125 kHz/(1+ACCEL_SMPLRT_DIV[11:0]).
-            // 19 = 56.25Hz. InvenSense Nucleo example uses 19 (0x13).
+    // 19; // ODR is computed as follows: 1.125 kHz/(1+ACCEL_SMPLRT_DIV[11:0]).
+    // 19 = 56.25Hz. InvenSense Nucleo example uses 19 (0x13).
     mySmplrt.g = 4; // 225Hz
     mySmplrt.a = 4; // 225Hz
     // mySmplrt.g = 8; // 112Hz
