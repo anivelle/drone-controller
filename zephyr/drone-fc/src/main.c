@@ -31,7 +31,8 @@ ICM_20948_Status_e setup_IMU(ICM_20948_Device_t *pdev,
                              ICM_20948_Serif_t *serif);
 ICM_20948_Status_e startupDefault(ICM_20948_Device_t *pdev, bool minimal);
 ICM_20948_Status_e startupMagnetometer(ICM_20948_Device_t *pdev, bool minimal);
-ICM_20948_Status_e readMagnetometer(ICM_20948_Device_t *pdev, AK09916_Reg_Addr_e reg, uint8_t *data);
+ICM_20948_Status_e readMagnetometer(ICM_20948_Device_t *pdev,
+                                    AK09916_Reg_Addr_e reg, uint8_t *data);
 
 K_THREAD_STACK_DEFINE(gyro_stack_area, DEFAULT_STACK);
 struct k_thread gyro_thread_data;
@@ -80,27 +81,38 @@ int main(void) {
 
     ICM_20948_Serif_t serif = {
         .read = read, .write = write, .user = (void *)i2c_dev};
-    int err = setup_IMU(&pdev, &serif);
+    bool init = false;
+    int err;
+    do {
+        err = setup_IMU(&pdev, &serif);
+        if (err != ICM_20948_Stat_Ok)
+            k_sleep(K_MSEC(500));
+        else
+            init = true;
+
+    } while (!init);
+
     printk("Setup error %d\n", err);
 
     // This was just to check that I was interfacing properly
-    uint8_t test;
-    err = ICM_20948_get_who_am_i(&pdev, &test);
+    // uint8_t test;
+    // err = ICM_20948_get_who_am_i(&pdev, &test);
     // printk("Error %d: %X\n", err, test);
 
     // ICM_20948_sw_reset(&pdev);
-    k_sleep(K_MSEC(500));
+    // k_sleep(K_MSEC(500));
     err = initializeDMP(&pdev);
-    // printk("Initialized DMP %d\n", err);
+    printk("Initialized DMP %d\n", err);
 
     err = inv_icm20948_enable_dmp_sensor(&pdev, INV_ICM20948_SENSOR_ORIENTATION,
                                          true);
-    // printk("DMP Sens %d\n", err);
+    printk("DMP Sens %d\n", err);
     err = inv_icm20948_set_dmp_sensor_period(&pdev, DMP_ODR_Reg_Quat9, 0);
+    printk("DMP Sens period %d\n", err);
 
     ICM_20948_enable_FIFO(&pdev, true);
     err = ICM_20948_enable_DMP(&pdev, true);
-    // printk("Enabling DMP %d\n", err);
+    printk("Enabling DMP %d\n", err);
     ICM_20948_reset_DMP(&pdev);
     ICM_20948_reset_FIFO(&pdev);
     uint16_t count;
@@ -121,30 +133,35 @@ int main(void) {
     // printk("User config: %X\n", test);
 
     // printk("User config done\n");
+    ICM_20948_Status_e data_ready = ICM_20948_Stat_Err;
     while (1) {
         // ICM_20948_get_FIFO_count(&pdev, &count);
-        ICM_20948_Status_e data_ready = ICM_20948_Stat_Err;
-        if (ICM_20948_data_ready(&pdev) == ICM_20948_Stat_Ok)
-            data_ready = inv_icm20948_read_dmp_data(&pdev, &data);
+        // Looks like this if statement slows data reading down?
+        // if (ICM_20948_data_ready(&pdev) == ICM_20948_Stat_Ok)
+
+        data_ready = inv_icm20948_read_dmp_data(&pdev, &data);
+        printf("Header: %X\n", data.header);
         // printf("FIFO count: %d\n", count);
         // printf("Data ready? %d\n", data_ready);
         if ((data_ready == ICM_20948_Stat_Ok ||
-             data_ready == ICM_20948_Stat_FIFOMoreDataAvail) &&
-            (data.header & DMP_header_bitmap_Quat9) > 0) {
-            double q1 = ((double)data.Quat9.Data.Q1) /
-                        1073741824.0; // Convert to double. Divide by 2^30
-            double q2 = ((double)data.Quat9.Data.Q2) /
-                        1073741824.0; // Convert to double. Divide by 2^30
-            double q3 = ((double)data.Quat9.Data.Q3) /
-                        1073741824.0; // Convert to double. Divide by 2^30
-            double q0 = sqrt(1.0 - ((q1 * q1) + (q2 * q2) + (q3 * q3)));
-            printf(
-                "{\"quat_w\":%f,\"quat_x\":%f,\"quat_y\":%f,\"quat_z\":%f}\n",
-                q0, q1, q2, q3);
-            // printf("Accuracy: %u\n", data.Quat9.Data.Accuracy);
+             data_ready == ICM_20948_Stat_FIFOMoreDataAvail)) {
+            if ((data.header & DMP_header_bitmap_Quat9) > 0) {
+                double q1 = ((double)data.Quat9.Data.Q1) /
+                            1073741824.0; // Convert to double. Divide by 2^30
+                double q2 = ((double)data.Quat9.Data.Q2) /
+                            1073741824.0; // Convert to double. Divide by 2^30
+                double q3 = ((double)data.Quat9.Data.Q3) /
+                            1073741824.0; // Convert to double. Divide by 2^30
+                double q0 = sqrt(1.0 - ((q1 * q1) + (q2 * q2) + (q3 * q3)));
+                printf(
+                    "{\"quat_w\":%.3f,\"quat_x\":%.3f,\"quat_y\":%.3f,\"quat_"
+                    "z\":%.3f}\n",
+                    q0, q1, q2, q3);
+                // printf("Accuracy: %u\n", data.Quat9.Data.Accuracy);
+            }
         }
         if (data_ready != ICM_20948_Stat_FIFOMoreDataAvail)
-          k_sleep(K_MSEC(10));
+            k_sleep(K_MSEC(1));
     }
 
     // Enables DMP interrupts
@@ -181,10 +198,10 @@ ICM_20948_Status_e read(uint8_t reg, uint8_t *buff, uint32_t len, void *user) {
     return ICM_20948_Stat_Err;
 }
 
+ICM_20948_Status_e readMagnetometer(ICM_20948_Device_t *pdev,
+                                    AK09916_Reg_Addr_e reg, uint8_t *data) {
 
-ICM_20948_Status_e readMagnetometer(ICM_20948_Device_t *pdev, AK09916_Reg_Addr_e reg, uint8_t *data){ 
-  
-  return ICM_20948_i2c_master_single_r(pdev, MAG_AK09916_I2C_ADDR, reg, data);
+    return ICM_20948_i2c_master_single_r(pdev, MAG_AK09916_I2C_ADDR, reg, data);
 }
 
 ICM_20948_Status_e magWhoAmI(ICM_20948_Device_t *pdev) {
@@ -198,11 +215,13 @@ ICM_20948_Status_e magWhoAmI(ICM_20948_Device_t *pdev) {
     retval = readMagnetometer(pdev, AK09916_REG_WIA2, &whoami2);
     if (retval != ICM_20948_Stat_Ok)
         return retval;
-    
-    if ((whoami1 == (MAG_AK09916_WHO_AM_I >> 8)) && (whoami2 == (MAG_AK09916_WHO_AM_I & 0xFF)))
-      return ICM_20948_Stat_Ok;
+
+    if ((whoami1 == (MAG_AK09916_WHO_AM_I >> 8)) &&
+        (whoami2 == (MAG_AK09916_WHO_AM_I & 0xFF)))
+        return ICM_20948_Stat_Ok;
     return ICM_20948_Stat_WrongID;
 }
+
 ICM_20948_Status_e startupMagnetometer(ICM_20948_Device_t *pdev, bool minimal) {
     ICM_20948_Status_e retval;
     ICM_20948_i2c_master_passthrough(pdev, false);
@@ -218,15 +237,15 @@ ICM_20948_Status_e startupMagnetometer(ICM_20948_Device_t *pdev, bool minimal) {
         tries++;
         retval = magWhoAmI(pdev);
         if (retval == ICM_20948_Stat_Ok)
-          break;
+            break;
         ICM_20948_i2c_master_reset(pdev);
         k_sleep(K_MSEC(10));
     }
     if (tries == MAX_MAGNETOMETER_STARTS) {
-      return ICM_20948_Stat_WrongID;
+        return ICM_20948_Stat_WrongID;
     }
     if (minimal)
-      return ICM_20948_Stat_Ok;
+        return ICM_20948_Stat_Ok;
     // Same as startupDefault, there is more but I am doing minimal startup
     return ICM_20948_Stat_Ok;
 }
@@ -285,38 +304,67 @@ ICM_20948_Status_e setup_IMU(ICM_20948_Device_t *pdev,
  */
 ICM_20948_Status_e initializeDMP(ICM_20948_Device_t *pdev) {
     ICM_20948_Status_e result = ICM_20948_Stat_Ok;
-    result |= ICM_20948_i2c_controller_configure_peripheral(
+    ICM_20948_Status_e worstResult = ICM_20948_Stat_Ok;
+    result = ICM_20948_i2c_controller_configure_peripheral(
         pdev, 0, MAG_AK09916_I2C_ADDR, AK09916_REG_RSV2, 10, true, true, false,
         true, true, 0);
+    if (result > worstResult)
+        worstResult = result;
 
-    result |= ICM_20948_i2c_controller_configure_peripheral(
+    result = ICM_20948_i2c_controller_configure_peripheral(
         pdev, 1, MAG_AK09916_I2C_ADDR, AK09916_REG_CNTL2, 1, false, true, false,
         false, false, AK09916_mode_single);
+    if (result > worstResult)
+        worstResult = result;
 
-    result |= ICM_20948_set_bank(pdev, 3);
+    result = ICM_20948_set_bank(pdev, 3);
+    if (result > worstResult)
+        worstResult = result;
     uint8_t config = 0x04;
-    result |= pdev->_serif->write(AGB3_REG_I2C_MST_ODR_CONFIG, &config, 1,
-                                  pdev->_serif->user);
+    result = pdev->_serif->write(AGB3_REG_I2C_MST_ODR_CONFIG, &config, 1,
+                                 pdev->_serif->user);
+    if (result > worstResult)
+        worstResult = result;
 
-    result |= ICM_20948_set_clock_source(pdev, ICM_20948_Clock_Auto);
+    result = ICM_20948_set_clock_source(pdev, ICM_20948_Clock_Auto);
+    if (result > worstResult)
+        worstResult = result;
 
-    result |= ICM_20948_set_bank(pdev, 1);
+    result = ICM_20948_set_bank(pdev, 0);
+    if (result > worstResult)
+        worstResult = result;
     config = 0x40;
-    result |= pdev->_serif->write(AGB0_REG_PWR_MGMT_2, &config, 1,
-                                  pdev->_serif->user);
+    result = pdev->_serif->write(AGB0_REG_PWR_MGMT_2, &config, 1,
+                                 pdev->_serif->user);
+    if (result > worstResult)
+        worstResult = result;
 
-    result |= ICM_20948_set_sample_mode(pdev, ICM_20948_Internal_Mst,
-                                        ICM_20948_Sample_Mode_Cycled);
+    result = ICM_20948_set_sample_mode(pdev, ICM_20948_Internal_Mst,
+                                       ICM_20948_Sample_Mode_Cycled);
+    k_sleep(K_MSEC(1));
+    if (result > worstResult)
+        worstResult = result;
 
-    result |= ICM_20948_enable_FIFO(pdev, false);
-    result |= ICM_20948_enable_DMP(pdev, false);
+    result = ICM_20948_enable_FIFO(pdev, false);
+    if (result > worstResult)
+        worstResult = result;
+    result = ICM_20948_enable_DMP(pdev, false);
+    if (result > worstResult)
+        worstResult = result;
 
     ICM_20948_fss_t fss;
     fss.a = gpm4;
     fss.g = dps2000;
-    result |= ICM_20948_set_full_scale(
-        pdev, (ICM_20948_Internal_Acc | ICM_20948_Internal_Gyr), fss);
-    result |= ICM_20948_enable_dlpf(pdev, ICM_20948_Internal_Gyr, true);
+    result = ICM_20948_set_full_scale(
+        pdev,
+        (ICM_20948_InternalSensorID_bm)(ICM_20948_Internal_Acc |
+                                        ICM_20948_Internal_Gyr),
+        fss);
+    if (result > worstResult)
+        worstResult = result;
+    result = ICM_20948_enable_dlpf(pdev, ICM_20948_Internal_Gyr, true);
+    if (result > worstResult)
+        worstResult = result;
 
     // Enable interrupt for FIFO overflow from FIFOs through INT_ENABLE_2
     // If we see this interrupt, we'll need to reset the FIFO
@@ -326,23 +374,38 @@ ICM_20948_Status_e initializeDMP(ICM_20948_Device_t *pdev) {
     // Turn off what goes into the FIFO through FIFO_EN_1, FIFO_EN_2
     // Stop the peripheral data from being written to the FIFO by writing zero
     // to FIFO_EN_1
-    result |= ICM_20948_set_bank(pdev, 0);
+    result = ICM_20948_set_bank(pdev, 0);
+    if (result > worstResult)
+        worstResult = result;
     uint8_t zero = 0;
-    result |=
+    result =
         pdev->_serif->write(AGB0_REG_FIFO_EN_1, &zero, 1, pdev->_serif->user);
+    if (result > worstResult)
+        worstResult = result;
     // Stop the accelerometer, gyro and temperature data from being written to
     // the FIFO by writing zero to FIFO_EN_2
-    result |=
+    result =
         pdev->_serif->write(AGB0_REG_FIFO_EN_2, &zero, 1, pdev->_serif->user);
+    if (result > worstResult)
+        worstResult = result;
 
     // Turn off data ready interrupt through INT_ENABLE_1
+    // This is technically its own function but I only use it once
     ICM_20948_INT_enable_t en;
-    result |= ICM_20948_int_enable(pdev, NULL, &en);
+    result = ICM_20948_int_enable(pdev, NULL, &en);
+    if (result > worstResult)
+        worstResult = result;
     en.RAW_DATA_0_RDY_EN = false;
-    result |= ICM_20948_int_enable(pdev, &en, &en);
+    result = ICM_20948_int_enable(pdev, &en, &en);
+    if (en.RAW_DATA_0_RDY_EN != false)
+        result = ICM_20948_Stat_Err;
+    if (result > worstResult)
+        worstResult = result;
 
     // Reset FIFO through FIFO_RST
-    result |= ICM_20948_reset_FIFO(pdev);
+    result = ICM_20948_reset_FIFO(pdev);
+    if (result > worstResult)
+        worstResult = result;
 
     // Set gyro sample rate divider with GYRO_SMPLRT_DIV
     // Set accel sample rate divider with ACCEL_SMPLRT_DIV_2
@@ -357,42 +420,62 @@ ICM_20948_Status_e initializeDMP(ICM_20948_Device_t *pdev) {
     mySmplrt.a = 4; // 225Hz
     // mySmplrt.g = 8; // 112Hz
     // mySmplrt.a = 8; // 112Hz
-    result |= ICM_20948_set_sample_rate(
+    result = ICM_20948_set_sample_rate(
         pdev, (ICM_20948_Internal_Acc | ICM_20948_Internal_Gyr), mySmplrt);
+    if (result > worstResult)
+        worstResult = result;
 
     // Setup DMP start address through PRGM_STRT_ADDRH/PRGM_STRT_ADDRL
-    result |= ICM_20948_set_dmp_start_address(pdev, DMP_START_ADDRESS);
+    result = ICM_20948_set_dmp_start_address(pdev, DMP_START_ADDRESS);
+    if (result > worstResult)
+        worstResult = result;
 
     // Now load the DMP firmware
-    result |= ICM_20948_firmware_load(pdev);
+    result = ICM_20948_firmware_load(pdev);
+    if (result > worstResult)
+        worstResult = result;
 
     // Write the 2 byte Firmware Start Value to ICM
     // PRGM_STRT_ADDRH/PRGM_STRT_ADDRL
-    result |= ICM_20948_set_dmp_start_address(pdev, DMP_START_ADDRESS);
+    result = ICM_20948_set_dmp_start_address(pdev, DMP_START_ADDRESS);
+    if (result > worstResult)
+        worstResult = result;
 
     // Set the Hardware Fix Disable register to 0x48
-    result |= ICM_20948_set_bank(pdev, 0);
+    result = ICM_20948_set_bank(pdev, 0);
+    if (result > worstResult)
+        worstResult = result;
     uint8_t fix = 0x48;
-    result |= pdev->_serif->write(AGB0_REG_HW_FIX_DISABLE, &fix, 1,
-                                  pdev->_serif->user);
+    result = pdev->_serif->write(AGB0_REG_HW_FIX_DISABLE, &fix, 1,
+                                 pdev->_serif->user);
+    if (result > worstResult)
+        worstResult = result;
 
     // Set the Single FIFO Priority Select register to 0xE4
-    result |= ICM_20948_set_bank(pdev, 0);
+    result = ICM_20948_set_bank(pdev, 0);
+    if (result > worstResult)
+        worstResult = result;
     uint8_t fifoPrio = 0xE4;
-    result |= pdev->_serif->write(AGB0_REG_SINGLE_FIFO_PRIORITY_SEL, &fifoPrio,
-                                  1, pdev->_serif->user);
+    result = pdev->_serif->write(AGB0_REG_SINGLE_FIFO_PRIORITY_SEL, &fifoPrio,
+                                 1, pdev->_serif->user);
+    if (result > worstResult)
+        worstResult = result;
 
     // Configure Accel scaling to DMP
     // The DMP scales accel raw data internally to align 1g as 2^25
     // In order to align internal accel raw data 2^25 = 1g write 0x04000000 when
     // FSR is 4g
     const unsigned char accScale[4] = {0x04, 0x00, 0x00, 0x00};
-    result |= inv_icm20948_write_mems(pdev, ACC_SCALE, 4, &accScale[0]);
+    result = inv_icm20948_write_mems(pdev, ACC_SCALE, 4, &accScale[0]);
+    if (result > worstResult)
+        worstResult = result;
     // Write accScale to ACC_SCALE DMP register
     // In order to output hardware unit data as configured FSR write 0x00040000
     // when FSR is 4g
     const unsigned char accScale2[4] = {0x00, 0x04, 0x00, 0x00};
-    result |= inv_icm20948_write_mems(pdev, ACC_SCALE2, 4, &accScale2[0]);
+    result = inv_icm20948_write_mems(pdev, ACC_SCALE2, 4, &accScale2[0]);
+    if (result > worstResult)
+        worstResult = result;
     // Write accScale2 to ACC_SCALE2 DMP register
 
     // Configure Compass mount matrix and scale to DMP
@@ -410,54 +493,92 @@ ICM_20948_Status_e initializeDMP(ICM_20948_Device_t *pdev) {
         0x09, 0x99, 0x99, 0x99}; // Value taken from InvenSense Nucleo example
     const unsigned char mountMultiplierMinus[4] = {
         0xF6, 0x66, 0x66, 0x67}; // Value taken from InvenSense Nucleo example
-    result |=
+    result =
         inv_icm20948_write_mems(pdev, CPASS_MTX_00, 4, &mountMultiplierPlus[0]);
-    result |=
+    if (result > worstResult)
+        worstResult = result;
+    result =
         inv_icm20948_write_mems(pdev, CPASS_MTX_01, 4, &mountMultiplierZero[0]);
-    result |=
+    if (result > worstResult)
+        worstResult = result;
+    result =
         inv_icm20948_write_mems(pdev, CPASS_MTX_02, 4, &mountMultiplierZero[0]);
-    result |=
+    if (result > worstResult)
+        worstResult = result;
+    result =
         inv_icm20948_write_mems(pdev, CPASS_MTX_10, 4, &mountMultiplierZero[0]);
-    result |= inv_icm20948_write_mems(pdev, CPASS_MTX_11, 4,
-                                      &mountMultiplierMinus[0]);
-    result |=
+    if (result > worstResult)
+        worstResult = result;
+    result = inv_icm20948_write_mems(pdev, CPASS_MTX_11, 4,
+                                     &mountMultiplierMinus[0]);
+    if (result > worstResult)
+        worstResult = result;
+    result =
         inv_icm20948_write_mems(pdev, CPASS_MTX_12, 4, &mountMultiplierZero[0]);
-    result |=
+    if (result > worstResult)
+        worstResult = result;
+    result =
         inv_icm20948_write_mems(pdev, CPASS_MTX_20, 4, &mountMultiplierZero[0]);
-    result |=
+    if (result > worstResult)
+        worstResult = result;
+    result =
         inv_icm20948_write_mems(pdev, CPASS_MTX_21, 4, &mountMultiplierZero[0]);
-    result |= inv_icm20948_write_mems(pdev, CPASS_MTX_22, 4,
-                                      &mountMultiplierMinus[0]);
+    if (result > worstResult)
+        worstResult = result;
+    result = inv_icm20948_write_mems(pdev, CPASS_MTX_22, 4,
+                                     &mountMultiplierMinus[0]);
+    if (result > worstResult)
+        worstResult = result;
 
     // Configure the B2S Mounting Matrix
     const unsigned char b2sMountMultiplierZero[4] = {0x00, 0x00, 0x00, 0x00};
     const unsigned char b2sMountMultiplierPlus[4] = {
         0x40, 0x00, 0x00, 0x00}; // Value taken from InvenSense Nucleo example
-    result |= inv_icm20948_write_mems(pdev, B2S_MTX_00, 4,
-                                      &b2sMountMultiplierPlus[0]);
-    result |= inv_icm20948_write_mems(pdev, B2S_MTX_01, 4,
-                                      &b2sMountMultiplierZero[0]);
-    result |= inv_icm20948_write_mems(pdev, B2S_MTX_02, 4,
-                                      &b2sMountMultiplierZero[0]);
-    result |= inv_icm20948_write_mems(pdev, B2S_MTX_10, 4,
-                                      &b2sMountMultiplierZero[0]);
-    result |= inv_icm20948_write_mems(pdev, B2S_MTX_11, 4,
-                                      &b2sMountMultiplierPlus[0]);
-    result |= inv_icm20948_write_mems(pdev, B2S_MTX_12, 4,
-                                      &b2sMountMultiplierZero[0]);
-    result |= inv_icm20948_write_mems(pdev, B2S_MTX_20, 4,
-                                      &b2sMountMultiplierZero[0]);
-    result |= inv_icm20948_write_mems(pdev, B2S_MTX_21, 4,
-                                      &b2sMountMultiplierZero[0]);
-    result |= inv_icm20948_write_mems(pdev, B2S_MTX_22, 4,
-                                      &b2sMountMultiplierPlus[0]);
+    result = inv_icm20948_write_mems(pdev, B2S_MTX_00, 4,
+                                     &b2sMountMultiplierPlus[0]);
+    if (result > worstResult)
+        worstResult = result;
+    result = inv_icm20948_write_mems(pdev, B2S_MTX_01, 4,
+                                     &b2sMountMultiplierZero[0]);
+    if (result > worstResult)
+        worstResult = result;
+    result = inv_icm20948_write_mems(pdev, B2S_MTX_02, 4,
+                                     &b2sMountMultiplierZero[0]);
+    if (result > worstResult)
+        worstResult = result;
+    result = inv_icm20948_write_mems(pdev, B2S_MTX_10, 4,
+                                     &b2sMountMultiplierZero[0]);
+    if (result > worstResult)
+        worstResult = result;
+    result = inv_icm20948_write_mems(pdev, B2S_MTX_11, 4,
+                                     &b2sMountMultiplierPlus[0]);
+    if (result > worstResult)
+        worstResult = result;
+    result = inv_icm20948_write_mems(pdev, B2S_MTX_12, 4,
+                                     &b2sMountMultiplierZero[0]);
+    if (result > worstResult)
+        worstResult = result;
+    result = inv_icm20948_write_mems(pdev, B2S_MTX_20, 4,
+                                     &b2sMountMultiplierZero[0]);
+    if (result > worstResult)
+        worstResult = result;
+    result = inv_icm20948_write_mems(pdev, B2S_MTX_21, 4,
+                                     &b2sMountMultiplierZero[0]);
+    if (result > worstResult)
+        worstResult = result;
+    result = inv_icm20948_write_mems(pdev, B2S_MTX_22, 4,
+                                     &b2sMountMultiplierPlus[0]);
+    if (result > worstResult)
+        worstResult = result;
 
     // Configure the DMP Gyro Scaling Factor
     // @param[in] gyro_div Value written to GYRO_SMPLRT_DIV register, where
     //            0=1125Hz sample rate, 1=562.5Hz sample rate, ... 4=225Hz
     //            sample rate, ... 10=102.2727Hz sample rate, ... etc.
     // @param[in] gyro_level 0=250 dps, 1=500 dps, 2=1000 dps, 3=2000 dps
-    result |= inv_icm20948_set_gyro_sf(pdev, 4, 3);
+    result = inv_icm20948_set_gyro_sf(pdev, 4, 3);
+    if (result > worstResult)
+        worstResult = result;
     // 19 = 55Hz (see above), 3 = 2000dps (see above)
 
     // Configure the Gyro full scale
@@ -467,44 +588,55 @@ ICM_20948_Status_e initializeDMP(ICM_20948_Device_t *pdev) {
     //  250dps : 2^25
     const unsigned char gyroFullScale[4] = {0x10, 0x00, 0x00,
                                             0x00}; // 2000dps : 2^28
-    result |=
+    result =
         inv_icm20948_write_mems(pdev, GYRO_FULLSCALE, 4, &gyroFullScale[0]);
+    if (result > worstResult)
+        worstResult = result;
 
     // Configure the Accel Only Gain: 15252014 (225Hz) 30504029 (112Hz) 61117001
     // (56Hz)
     // const unsigned char accelOnlyGain[4] = {0x03, 0xA4, 0x92, 0x49}; // 56Hz
     const unsigned char accelOnlyGain[4] = {0x00, 0xE8, 0xBA, 0x2E}; // 225Hz
     // const unsigned char accelOnlyGain[4] = {0x01, 0xD1, 0x74, 0x5D}; // 112Hz
-    result |=
+    result =
         inv_icm20948_write_mems(pdev, ACCEL_ONLY_GAIN, 4, &accelOnlyGain[0]);
+    if (result > worstResult)
+        worstResult = result;
 
     // Configure the Accel Alpha Var: 1026019965 (225Hz) 977872018 (112Hz)
     // 882002213 (56Hz)
     // const unsigned char accelAlphaVar[4] = {0x34, 0x92, 0x49, 0x25}; // 56Hz
     const unsigned char accelAlphaVar[4] = {0x3D, 0x27, 0xD2, 0x7D}; // 225Hz
     // const unsigned char accelAlphaVar[4] = {0x3A, 0x49, 0x24, 0x92}; // 112Hz
-    result |=
+    result =
         inv_icm20948_write_mems(pdev, ACCEL_ALPHA_VAR, 4, &accelAlphaVar[0]);
+    if (result > worstResult)
+        worstResult = result;
 
     // Configure the Accel A Var: 47721859 (225Hz) 95869806 (112Hz) 191739611
     // (56Hz)
     // const unsigned char accelAVar[4] = {0x0B, 0x6D, 0xB6, 0xDB}; // 56Hz
     const unsigned char accelAVar[4] = {0x02, 0xD8, 0x2D, 0x83}; // 225Hz
     // const unsigned char accelAVar[4] = {0x05, 0xB6, 0xDB, 0x6E}; // 112Hz
-    result |= inv_icm20948_write_mems(pdev, ACCEL_A_VAR, 4, &accelAVar[0]);
+    result = inv_icm20948_write_mems(pdev, ACCEL_A_VAR, 4, &accelAVar[0]);
+    if (result > worstResult)
+        worstResult = result;
 
     // Configure the Accel Cal Rate
     const unsigned char accelCalRate[4] = {
         0x00, 0x00}; // Value taken from InvenSense Nucleo example
-    result |=
-        inv_icm20948_write_mems(pdev, ACCEL_CAL_RATE, 2, &accelCalRate[0]);
+    result = inv_icm20948_write_mems(pdev, ACCEL_CAL_RATE, 2, &accelCalRate[0]);
+    if (result > worstResult)
+        worstResult = result;
 
     // Configure the Compass Time Buffer. The I2C Master ODR Configuration (see
     // above) sets the magnetometer read rate to 68.75Hz. Let's set the Compass
     // Time Buffer to 69 (Hz).
     const unsigned char compassRate[2] = {0x00, 0x45}; // 69Hz
-    result |=
+    result =
         inv_icm20948_write_mems(pdev, CPASS_TIME_BUFFER, 2, &compassRate[0]);
+    if (result > worstResult)
+        worstResult = result;
 
     // Enable DMP interrupt
     // This would be the most efficient way of getting the DMP data, instead of
@@ -514,5 +646,5 @@ ICM_20948_Status_e initializeDMP(ICM_20948_Device_t *pdev) {
     // en.DMP_INT1_EN = true;
     // result |= ICM_20948_int_enable(pdev, &en, &en);
 
-    return result;
+    return worstResult;
 }
