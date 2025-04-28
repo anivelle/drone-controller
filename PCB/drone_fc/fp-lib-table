@@ -6,4 +6,5 @@
   (lib (name "MiscPads")(type "KiCad")(uri "${KIPRJMOD}/MiscPads.pretty")(options "")(descr ""))
   (lib (name "KS_TSSLE-6868R")(type "KiCad")(uri "${KIPRJMOD}/KS_TSSLE-6868R.pretty")(options "")(descr ""))
   (lib (name "footprints")(type "KiCad")(uri "${KIPRJMOD}/footprints.pretty")(options "")(descr ""))
+  (lib (name "ECS-CKY")(type "KiCad")(uri "${KIPRJMOD}/ECS-CKY")(options "")(descr ""))
 )
