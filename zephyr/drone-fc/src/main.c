@@ -73,7 +73,11 @@ int main(void) {
     if (i2c_dev == NULL || !device_is_ready(i2c_dev))
         printk("Could not get I2C device");
 
-    uint32_t dev_config = I2C_SPEED_FAST | I2C_MODE_CONTROLLER;
+    uint32_t dev_config; 
+    if(!i2c_get_config(i2c_dev, &dev_config))
+      dev_config |= I2C_SPEED_SET(I2C_SPEED_FAST) | I2C_MODE_CONTROLLER;
+    else 
+      dev_config = I2C_SPEED_SET(I2C_SPEED_FAST) | I2C_MODE_CONTROLLER;
     i2c_configure(i2c_dev, dev_config);
 
     ICM_20948_Device_t pdev;
@@ -102,17 +106,17 @@ int main(void) {
     // ICM_20948_sw_reset(&pdev);
     // k_sleep(K_MSEC(500));
     err = initializeDMP(&pdev);
-    printk("Initialized DMP %d\n", err);
+    // printk("Initialized DMP %d\n", err);
 
     err = inv_icm20948_enable_dmp_sensor(&pdev, INV_ICM20948_SENSOR_ORIENTATION,
                                          true);
-    printk("DMP Sens %d\n", err);
+    // printk("DMP Sens %d\n", err);
     err = inv_icm20948_set_dmp_sensor_period(&pdev, DMP_ODR_Reg_Quat9, 0);
-    printk("DMP Sens period %d\n", err);
+    // printk("DMP Sens period %d\n", err);
 
     ICM_20948_enable_FIFO(&pdev, true);
     err = ICM_20948_enable_DMP(&pdev, true);
-    printk("Enabling DMP %d\n", err);
+    // printk("Enabling DMP %d\n", err);
     ICM_20948_reset_DMP(&pdev);
     ICM_20948_reset_FIFO(&pdev);
     uint16_t count;
@@ -140,7 +144,7 @@ int main(void) {
         // if (ICM_20948_data_ready(&pdev) == ICM_20948_Stat_Ok)
 
         data_ready = inv_icm20948_read_dmp_data(&pdev, &data);
-        printf("Header: %X\n", data.header);
+        // printf("Header: %X\n", data.header);
         // printf("FIFO count: %d\n", count);
         // printf("Data ready? %d\n", data_ready);
         if ((data_ready == ICM_20948_Stat_Ok ||
