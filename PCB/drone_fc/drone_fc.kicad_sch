@@ -671,6 +671,199 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "Connector:Conn_ARM_SWD_TagConnect_TC2030"
+			(exclude_from_sim no)
+			(in_bom no)
+			(on_board yes)
+			(property "Reference" "J"
+				(at 2.54 11.43 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "Conn_ARM_SWD_TagConnect_TC2030"
+				(at 5.08 8.89 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" "Connector:Tag-Connect_TC2030-IDC-FP_2x03_P1.27mm_Vertical"
+				(at 0 -17.78 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "https://www.tag-connect.com/wp-content/uploads/bsk-pdf-manager/TC2030-CTX_1.pdf"
+				(at 0 -15.24 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "Tag-Connect ARM Cortex SWD JTAG connector, 6 pin"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "Cortex Debug Connector ARM SWD JTAG"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_fp_filters" "*TC2030*"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "Conn_ARM_SWD_TagConnect_TC2030_0_0"
+				(pin power_in line
+					(at -2.54 10.16 270)
+					(length 2.54)
+					(name "VCC"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at -2.54 -10.16 90)
+					(length 2.54)
+					(name "GND"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin open_collector line
+					(at 7.62 5.08 180)
+					(length 2.54)
+					(name "~{RESET}"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 7.62 0 180)
+					(length 2.54)
+					(name "SWCLK"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(alternate "TCK" output line)
+				)
+				(pin bidirectional line
+					(at 7.62 -2.54 180)
+					(length 2.54)
+					(name "SWDIO"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(alternate "TMS" bidirectional line)
+				)
+				(pin input line
+					(at 7.62 -5.08 180)
+					(length 2.54)
+					(name "SWO"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "6"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(alternate "TDO" input line)
+				)
+			)
+			(symbol "Conn_ARM_SWD_TagConnect_TC2030_0_1"
+				(rectangle
+					(start -5.08 7.62)
+					(end 5.08 -7.62)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type background)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "Connector:USB_C_Receptacle_USB2.0_16P"
 			(pin_names
 				(offset 1.016)
@@ -6944,6 +7137,10 @@
 		(uuid "169185c9-227c-4745-be9d-0842043b638b")
 	)
 	(no_connect
+		(at 494.03 207.01)
+		(uuid "1eb7c528-7a26-4215-856e-6818624f5c62")
+	)
+	(no_connect
 		(at 257.81 190.5)
 		(uuid "1f7de9a3-98e9-4948-b98a-77fb4a608bb0")
 	)
@@ -6977,7 +7174,7 @@
 	)
 	(wire
 		(pts
-			(xy 515.62 323.85) (xy 535.94 323.85)
+			(xy 499.11 311.15) (xy 519.43 311.15)
 		)
 		(stroke
 			(width 0)
@@ -7057,7 +7254,7 @@
 	)
 	(wire
 		(pts
-			(xy 156.21 213.36) (xy 156.21 214.63)
+			(xy 156.21 213.36) (xy 156.21 223.52)
 		)
 		(stroke
 			(width 0)
@@ -7317,16 +7514,6 @@
 	)
 	(wire
 		(pts
-			(xy 156.21 222.25) (xy 156.21 223.52)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "1f07d809-4719-451c-9096-f2183c73d223")
-	)
-	(wire
-		(pts
 			(xy 361.95 166.37) (xy 355.6 166.37)
 		)
 		(stroke
@@ -7337,7 +7524,7 @@
 	)
 	(wire
 		(pts
-			(xy 515.62 326.39) (xy 535.94 326.39)
+			(xy 499.11 331.47) (xy 519.43 331.47)
 		)
 		(stroke
 			(width 0)
@@ -7927,16 +8114,6 @@
 	)
 	(wire
 		(pts
-			(xy 90.17 312.42) (xy 90.17 314.96)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "68e72ef7-4b52-42c6-a318-4f0d9ff44ac8")
-	)
-	(wire
-		(pts
 			(xy 334.01 231.14) (xy 344.17 231.14)
 		)
 		(stroke
@@ -8317,7 +8494,17 @@
 	)
 	(wire
 		(pts
-			(xy 515.62 316.23) (xy 535.94 316.23)
+			(xy 316.23 246.38) (xy 316.23 254)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "8c03a99b-7e0e-4b4b-a410-bfa42cee6c37")
+	)
+	(wire
+		(pts
+			(xy 509.27 323.85) (xy 529.59 323.85)
 		)
 		(stroke
 			(width 0)
@@ -8797,6 +8984,16 @@
 	)
 	(wire
 		(pts
+			(xy 316.23 254) (xy 323.85 254)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c02233ed-c3ac-437d-b811-ea3392b797d0")
+	)
+	(wire
+		(pts
 			(xy 269.24 248.92) (xy 273.05 248.92)
 		)
 		(stroke
@@ -8837,7 +9034,7 @@
 	)
 	(wire
 		(pts
-			(xy 515.62 321.31) (xy 535.94 321.31)
+			(xy 509.27 316.23) (xy 529.59 316.23)
 		)
 		(stroke
 			(width 0)
@@ -9067,7 +9264,7 @@
 	)
 	(wire
 		(pts
-			(xy 515.62 318.77) (xy 535.94 318.77)
+			(xy 509.27 321.31) (xy 529.59 321.31)
 		)
 		(stroke
 			(width 0)
@@ -9304,6 +9501,16 @@
 			(type default)
 		)
 		(uuid "ecd08942-a4f0-4552-848d-e99de8a49512")
+	)
+	(wire
+		(pts
+			(xy 509.27 326.39) (xy 529.59 326.39)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "eceb0944-d1ae-4c5d-8719-dc6a648f3651")
 	)
 	(wire
 		(pts
@@ -9656,7 +9863,7 @@
 		(uuid "3ca0e748-6ba2-4ed3-9554-bcaa4bdca48e")
 	)
 	(label "NRESET"
-		(at 535.94 321.31 180)
+		(at 529.59 316.23 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -9706,7 +9913,7 @@
 		(uuid "5c701e23-ce1c-41de-b7cb-322831f8d2f8")
 	)
 	(label "GND"
-		(at 535.94 326.39 180)
+		(at 519.43 331.47 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -9734,6 +9941,16 @@
 			(justify left bottom)
 		)
 		(uuid "6e176049-e1a8-4f97-98f6-30ae50558cbf")
+	)
+	(label "SWO"
+		(at 529.59 326.39 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "712678f4-0715-4c53-adaa-945c83a1cd22")
 	)
 	(label "3V3"
 		(at 535.94 304.8 180)
@@ -9786,7 +10003,7 @@
 		(uuid "9b4397ef-3319-472e-90b0-6ad70499e92a")
 	)
 	(label "SWDCLK"
-		(at 535.94 318.77 180)
+		(at 529.59 321.31 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -9856,7 +10073,7 @@
 		(uuid "a95576a8-056a-42ea-a618-c02812034aba")
 	)
 	(label "3V3"
-		(at 535.94 323.85 180)
+		(at 519.43 311.15 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -9876,7 +10093,7 @@
 		(uuid "b13c442d-244a-43fc-89bd-fea7bdc969f6")
 	)
 	(label "SWDIO"
-		(at 535.94 316.23 180)
+		(at 529.59 323.85 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -9884,6 +10101,16 @@
 			(justify right bottom)
 		)
 		(uuid "bb7e1e0d-409d-4014-839b-ea07b434f317")
+	)
+	(label "SWO"
+		(at 323.85 254 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "c0e9a629-558f-4766-8587-7d4866bb5176")
 	)
 	(label "GND"
 		(at 535.94 287.02 180)
@@ -10509,6 +10736,15 @@
 			)
 		)
 		(property "Description" "Schottky diode"
+			(at 168.91 218.44 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Link" "https://www.digikey.com/en/products/detail/nexperia-usa-inc/PMEG6020ER-115/2296182"
 			(at 168.91 218.44 0)
 			(effects
 				(font
@@ -11149,7 +11385,7 @@
 	)
 	(symbol
 		(lib_id "power:PWR_FLAG")
-		(at 90.17 312.42 0)
+		(at 90.17 314.96 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -11158,7 +11394,7 @@
 		(fields_autoplaced yes)
 		(uuid "3d6abdc7-7841-4c29-8f96-f9b3f010b876")
 		(property "Reference" "#FLG04"
-			(at 90.17 310.515 0)
+			(at 90.17 313.055 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11167,7 +11403,7 @@
 			)
 		)
 		(property "Value" "PWR_FLAG"
-			(at 90.17 307.34 0)
+			(at 90.17 309.88 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11175,7 +11411,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 90.17 312.42 0)
+			(at 90.17 314.96 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11184,7 +11420,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 90.17 312.42 0)
+			(at 90.17 314.96 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11193,7 +11429,7 @@
 			)
 		)
 		(property "Description" "Special symbol for telling ERC where power comes from"
-			(at 90.17 312.42 0)
+			(at 90.17 314.96 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11273,6 +11509,89 @@
 			(project "drone_fc"
 				(path "/0506b644-0d93-4e3b-af7b-42a60683a977"
 					(reference "#PWR031")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:Conn_ARM_SWD_TagConnect_TC2030")
+		(at 501.65 321.31 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "485d2128-e087-4983-bb66-a368d53206c7")
+		(property "Reference" "J4"
+			(at 495.3 320.0399 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "Conn_ARM_SWD_TagConnect_TC2030"
+			(at 495.3 322.5799 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+				(hide yes)
+			)
+		)
+		(property "Footprint" "Connector:Tag-Connect_TC2030-IDC-FP_2x03_P1.27mm_Vertical"
+			(at 501.65 339.09 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "https://www.tag-connect.com/wp-content/uploads/bsk-pdf-manager/TC2030-CTX_1.pdf"
+			(at 501.65 336.55 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Tag-Connect ARM Cortex SWD JTAG connector, 6 pin"
+			(at 501.65 321.31 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "3"
+			(uuid "12cf2ae3-0765-44da-962b-c422fd87cb1b")
+		)
+		(pin "5"
+			(uuid "a9ecb5aa-5a0a-4b6f-917b-2183ac57b241")
+		)
+		(pin "4"
+			(uuid "504fc5f9-8544-417b-84f6-7b4f3610165b")
+		)
+		(pin "2"
+			(uuid "c0683ec5-4767-4d86-b52e-6382423e7ce3")
+		)
+		(pin "6"
+			(uuid "9b62eb4e-5d13-4bea-ad5b-056f0fd61570")
+		)
+		(pin "1"
+			(uuid "3d1c43e6-b4e7-443c-a772-1b72b4e93db7")
+		)
+		(instances
+			(project ""
+				(path "/0506b644-0d93-4e3b-af7b-42a60683a977"
+					(reference "J4")
 					(unit 1)
 				)
 			)
@@ -12397,75 +12716,6 @@
 			(project "drone_fc"
 				(path "/0506b644-0d93-4e3b-af7b-42a60683a977"
 					(reference "U2")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Device:D_Schottky")
-		(at 156.21 218.44 90)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(uuid "6edccf01-9675-4e55-adff-d21606e75478")
-		(property "Reference" "D2"
-			(at 151.638 217.424 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Value" "D_Schottky"
-			(at 144.018 219.456 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Footprint" "Diode_SMD:Nexperia_CFP3_SOD-123W"
-			(at 156.21 218.44 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" "~"
-			(at 156.21 218.44 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Schottky diode"
-			(at 156.21 218.44 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "2"
-			(uuid "063ac420-7673-4fe8-a865-c5cba04b41c4")
-		)
-		(pin "1"
-			(uuid "e9767f5f-13f8-41f7-a6ea-6b3968ffef39")
-		)
-		(instances
-			(project "drone_fc"
-				(path "/0506b644-0d93-4e3b-af7b-42a60683a977"
-					(reference "D2")
 					(unit 1)
 				)
 			)
