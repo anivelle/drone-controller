@@ -5,6 +5,8 @@
 #include <zephyr/sys/mem_manage.h>
 #include "sparkfun_icm20948/ICM_20948_C.h" // Thank god for the Sparkfun library
 #include "sparkfun_icm20948/AK09916_REGISTERS.h"
+// #include <nrfx_gpiote.h>
+#include "vl53l4cx/vl53l4cx_class.h"
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -13,6 +15,7 @@
 #define ICM_ADDR ICM_20948_I2C_ADDR_AD1
 
 const uint8_t MAX_MAGNETOMETER_STARTS = 10;
+struct k_sem icm20948_ready;
 
 BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart),
              "Console device is not ACM CDC UART device");
@@ -24,8 +27,10 @@ BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart),
 //     k_sem_give(&icm20948_ready);
 // }
 
-ICM_20948_Status_e write(uint8_t reg, uint8_t *data, uint32_t len, void *user);
-ICM_20948_Status_e read(uint8_t reg, uint8_t *buff, uint32_t len, void *user);
+int write(uint8_t addr, uint8_t reg, uint8_t *data, uint32_t len, void *user);
+int read(uint8_t addr, uint8_t *reg, uint8_t regLen, uint8_t *buff,
+         uint32_t len, void *user);
+
 ICM_20948_Status_e initializeDMP(ICM_20948_Device_t *pdev);
 ICM_20948_Status_e setup_IMU(ICM_20948_Device_t *pdev,
                              ICM_20948_Serif_t *serif);
@@ -59,7 +64,8 @@ int main(void) {
 
     // if (usb_enable(NULL))
     //     return 0;
-
+    // k_sem_init(&icm20948_ready, 0, 1);
+    // IRQ_CONNECT(6, 1, icm20948_isr, NULL, 0)
     uint32_t dtr = 0;
     const struct device *const dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
     while (!dtr) {
@@ -73,22 +79,31 @@ int main(void) {
     if (i2c_dev == NULL || !device_is_ready(i2c_dev))
         printk("Could not get I2C device");
 
-    uint32_t dev_config; 
-    if(!i2c_get_config(i2c_dev, &dev_config))
-      dev_config |= I2C_SPEED_SET(I2C_SPEED_FAST) | I2C_MODE_CONTROLLER;
-    else 
-      dev_config = I2C_SPEED_SET(I2C_SPEED_FAST) | I2C_MODE_CONTROLLER;
+    uint32_t dev_config;
+    if (!i2c_get_config(i2c_dev, &dev_config))
+        dev_config |= I2C_SPEED_SET(I2C_SPEED_FAST) | I2C_MODE_CONTROLLER;
+    else
+        dev_config = I2C_SPEED_SET(I2C_SPEED_FAST) | I2C_MODE_CONTROLLER;
     i2c_configure(i2c_dev, dev_config);
 
-    ICM_20948_Device_t pdev;
-    ICM_20948_init_struct(&pdev);
+    ICM_20948_Device_t icm20948;
+    ICM_20948_init_struct(&icm20948);
 
-    ICM_20948_Serif_t serif = {
+    serif_t vl53l4cx_serif = {.i2c_dev = i2c_dev, .write = write, .read = read};
+    
+    VL53L4CX_Dev_t vl53l4cx; 
+    
+    const struct device *const gpio_port = DEVICE_DT_GET(DT_NODELABEL(gpio1));
+    VL53L4CX_init_device(&vl53l4cx, &vl53l4cx_serif, gpio_port, 14);
+
+    begin(&vl53l4cx);
+    
+    ICM_20948_Serif_t icm20948_serif = {
         .read = read, .write = write, .user = (void *)i2c_dev};
     bool init = false;
     int err;
     do {
-        err = setup_IMU(&pdev, &serif);
+        err = setup_IMU(&icm20948, &icm20948_serif);
         if (err != ICM_20948_Stat_Ok)
             k_sleep(K_MSEC(500));
         else
@@ -105,48 +120,33 @@ int main(void) {
 
     // ICM_20948_sw_reset(&pdev);
     // k_sleep(K_MSEC(500));
-    err = initializeDMP(&pdev);
+    err = initializeDMP(&icm20948);
     // printk("Initialized DMP %d\n", err);
 
-    err = inv_icm20948_enable_dmp_sensor(&pdev, INV_ICM20948_SENSOR_ORIENTATION,
+    err = inv_icm20948_enable_dmp_sensor(&icm20948, INV_ICM20948_SENSOR_ORIENTATION,
                                          true);
     // printk("DMP Sens %d\n", err);
-    err = inv_icm20948_set_dmp_sensor_period(&pdev, DMP_ODR_Reg_Quat9, 0);
+    err = inv_icm20948_set_dmp_sensor_period(&icm20948, DMP_ODR_Reg_Quat9, 0);
     // printk("DMP Sens period %d\n", err);
 
-    ICM_20948_enable_FIFO(&pdev, true);
-    err = ICM_20948_enable_DMP(&pdev, true);
+    ICM_20948_enable_FIFO(&icm20948, true);
+    err = ICM_20948_enable_DMP(&icm20948, true);
     // printk("Enabling DMP %d\n", err);
-    ICM_20948_reset_DMP(&pdev);
-    ICM_20948_reset_FIFO(&pdev);
+    ICM_20948_reset_DMP(&icm20948);
+    ICM_20948_reset_FIFO(&icm20948);
     uint16_t count;
     icm_20948_DMP_data_t data;
     // k_sem_give(&icm20948_ready);
+
+    // irq_enable(6);
     // Set up the semaphore to block the thread until the interrupt occurs
     // printk("Semaphore status: %d\n", k_sem_take(&icm20948_ready, K_FOREVER));
-    // Wake up the ICM20948 from sleep mode
-    // uint8_t pwr_mode;
-    // icm20948_readregister(i2c_dev, ICM20948_PWR_MGMT_1, &pwr_mode);
-    // pwr_mode &= ~SLEEP;
-    // icm20948_setregister(i2c_dev, ICM20948_PWR_MGMT_1, pwr_mode);
-
-    // icm20948_readregister(i2c_dev, ICM20948_PWR_MGMT_1, &pwr_mode);
-    // printk("Power mode: %X\n", pwr_mode);
-
-    // Enable the DMP and FIFO on the IMU
-    // printk("User config: %X\n", test);
 
     // printk("User config done\n");
     ICM_20948_Status_e data_ready = ICM_20948_Stat_Err;
     while (1) {
-        // ICM_20948_get_FIFO_count(&pdev, &count);
-        // Looks like this if statement slows data reading down?
-        // if (ICM_20948_data_ready(&pdev) == ICM_20948_Stat_Ok)
 
-        data_ready = inv_icm20948_read_dmp_data(&pdev, &data);
-        // printf("Header: %X\n", data.header);
-        // printf("FIFO count: %d\n", count);
-        // printf("Data ready? %d\n", data_ready);
+        data_ready = inv_icm20948_read_dmp_data(&icm20948, &data);
         if ((data_ready == ICM_20948_Stat_Ok ||
              data_ready == ICM_20948_Stat_FIFOMoreDataAvail)) {
             if ((data.header & DMP_header_bitmap_Quat9) > 0) {
@@ -161,19 +161,11 @@ int main(void) {
                     "{\"quat_w\":%.3f,\"quat_x\":%.3f,\"quat_y\":%.3f,\"quat_"
                     "z\":%.3f}\n",
                     q0, q1, q2, q3);
-                // printf("Accuracy: %u\n", data.Quat9.Data.Accuracy);
             }
         }
         if (data_ready != ICM_20948_Stat_FIFOMoreDataAvail)
             k_sleep(K_MSEC(1));
     }
-
-    // Enables DMP interrupts
-    // icm20948_set_int(i2c_dev, DMP_INT1_EN);
-    // char buf;
-    // icm20948_readregister(i2c_dev, ICM20948_INT_STATUS, &buf);
-
-    // printk("Interrupt registers: %X\n", buf);
 
     // Create and start a thread that constantly tries to read from the IMU
     /* k_tid_t icm20948_get_gyro = k_thread_create(
@@ -184,20 +176,32 @@ int main(void) {
     return 0;
 }
 
-ICM_20948_Status_e write(uint8_t reg, uint8_t *data, uint32_t len, void *user) {
+// int write(uint8_t addr, uint8_t *buf, int numWrite, void *user) {
+//   const struct device *i2c_dev = (const struct device *)user;
+//   return i2c_write(i2c_dev, buf, numWrite, addr);
+// }
+//
+// int read(uint8_t addr, uint8_t *writeBuf, uint8_t numWrite, uint8_t *readBuf,
+//          int numRead, void *user) {
+//   const struct device *i2c_dev = (const struct device *)user;
+//   return i2c_write_read(i2c_dev, addr, writeBuf, numWrite, readBuf, numRead);
+// }
+
+int write(uint8_t addr, uint8_t reg, uint8_t *data, uint32_t len, void *user) {
     const struct device *const i2c_dev = (const struct device *const)user;
     uint8_t reg_data[len + 1];
     reg_data[0] = reg;
     memcpy(&reg_data[1], data, len);
-    if (!i2c_write(i2c_dev, reg_data, len + 1, ICM_ADDR))
+    if (!i2c_write(i2c_dev, reg_data, len + 1, addr))
         return ICM_20948_Stat_Ok;
     return ICM_20948_Stat_Err;
 }
 
-ICM_20948_Status_e read(uint8_t reg, uint8_t *buff, uint32_t len, void *user) {
+int read(uint8_t addr, uint8_t *reg, uint8_t regLen, uint8_t *buff,
+         uint32_t len, void *user) {
     const struct device *const i2c_dev = (const struct device *const)user;
 
-    if (!i2c_write_read(i2c_dev, ICM_ADDR, &reg, 1, buff, len))
+    if (!i2c_write_read(i2c_dev, addr, &reg, regLen, buff, len))
         return ICM_20948_Stat_Ok;
     return ICM_20948_Stat_Err;
 }
@@ -325,8 +329,8 @@ ICM_20948_Status_e initializeDMP(ICM_20948_Device_t *pdev) {
     if (result > worstResult)
         worstResult = result;
     uint8_t config = 0x04;
-    result = pdev->_serif->write(AGB3_REG_I2C_MST_ODR_CONFIG, &config, 1,
-                                 pdev->_serif->user);
+    result = pdev->_serif->write(ICM_ADDR, AGB3_REG_I2C_MST_ODR_CONFIG, &config,
+                                 1, pdev->_serif->user);
     if (result > worstResult)
         worstResult = result;
 
@@ -338,8 +342,7 @@ ICM_20948_Status_e initializeDMP(ICM_20948_Device_t *pdev) {
     if (result > worstResult)
         worstResult = result;
     config = 0x40;
-    result = pdev->_serif->write(AGB0_REG_PWR_MGMT_2, &config, 1,
-                                 pdev->_serif->user);
+    result = ICM_20948_execute_w(pdev, AGB0_REG_PWR_MGMT_2, &config, 1);
     if (result > worstResult)
         worstResult = result;
 
@@ -382,14 +385,12 @@ ICM_20948_Status_e initializeDMP(ICM_20948_Device_t *pdev) {
     if (result > worstResult)
         worstResult = result;
     uint8_t zero = 0;
-    result =
-        pdev->_serif->write(AGB0_REG_FIFO_EN_1, &zero, 1, pdev->_serif->user);
+    result = ICM_20948_execute_w(pdev, AGB0_REG_FIFO_EN_1, &zero, 1);
     if (result > worstResult)
         worstResult = result;
     // Stop the accelerometer, gyro and temperature data from being written to
     // the FIFO by writing zero to FIFO_EN_2
-    result =
-        pdev->_serif->write(AGB0_REG_FIFO_EN_2, &zero, 1, pdev->_serif->user);
+    result = ICM_20948_execute_w(pdev, AGB0_REG_FIFO_EN_2, &zero, 1);
     if (result > worstResult)
         worstResult = result;
 
@@ -450,8 +451,7 @@ ICM_20948_Status_e initializeDMP(ICM_20948_Device_t *pdev) {
     if (result > worstResult)
         worstResult = result;
     uint8_t fix = 0x48;
-    result = pdev->_serif->write(AGB0_REG_HW_FIX_DISABLE, &fix, 1,
-                                 pdev->_serif->user);
+    result = ICM_20948_execute_w(pdev, AGB0_REG_HW_FIX_DISABLE, &fix, 1);
     if (result > worstResult)
         worstResult = result;
 
@@ -460,8 +460,8 @@ ICM_20948_Status_e initializeDMP(ICM_20948_Device_t *pdev) {
     if (result > worstResult)
         worstResult = result;
     uint8_t fifoPrio = 0xE4;
-    result = pdev->_serif->write(AGB0_REG_SINGLE_FIFO_PRIORITY_SEL, &fifoPrio,
-                                 1, pdev->_serif->user);
+    result = ICM_20948_execute_w(pdev, AGB0_REG_SINGLE_FIFO_PRIORITY_SEL,
+                                 &fifoPrio, 1);
     if (result > worstResult)
         worstResult = result;
 

@@ -143,7 +143,7 @@ ICM_20948_Status_e ICM_20948_execute_w(ICM_20948_Device_t *pdev, uint8_t regaddr
   {
     return ICM_20948_Stat_NotImpl;
   }
-  return (*pdev->_serif->write)(regaddr, pdata, len, pdev->_serif->user);
+  return (*pdev->_serif->write)(ICM_20948_I2C_ADDR_AD1, regaddr, pdata, len, pdev->_serif->user);
 }
 
 ICM_20948_Status_e ICM_20948_execute_r(ICM_20948_Device_t *pdev, uint8_t regaddr, uint8_t *pdata, uint32_t len)
@@ -152,7 +152,7 @@ ICM_20948_Status_e ICM_20948_execute_r(ICM_20948_Device_t *pdev, uint8_t regaddr
   {
     return ICM_20948_Stat_NotImpl;
   }
-  return (*pdev->_serif->read)(regaddr, pdata, len, pdev->_serif->user);
+  return (*pdev->_serif->read)(ICM_20948_I2C_ADDR_AD1, &regaddr, 1, pdata, len, pdev->_serif->user);
 }
 
 //Transact directly with an I2C device, one byte at a time
