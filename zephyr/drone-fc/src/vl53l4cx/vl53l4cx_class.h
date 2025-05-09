@@ -35,7 +35,6 @@
 #include "vl53l4cx_register_structs.h"
 #include "vl53l4cx_tuning_parm_defaults.h"
 #include "vl53l4cx_xtalk_private_structs.h"
-#include <zephyr/drivers/gpio.h>
 
 #define VL53L4CX_DEFAULT_DEVICE_ADDRESS 0x52
 

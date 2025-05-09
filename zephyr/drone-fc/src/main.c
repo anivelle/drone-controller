@@ -5,8 +5,8 @@
 #include <zephyr/sys/mem_manage.h>
 #include "sparkfun_icm20948/ICM_20948_C.h" // Thank god for the Sparkfun library
 #include "sparkfun_icm20948/AK09916_REGISTERS.h"
-// #include <nrfx_gpiote.h>
 #include "vl53l4cx/vl53l4cx_class.h"
+#include <zephyr/drivers/gpio.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -31,34 +31,35 @@ int write(uint8_t addr, uint8_t reg, uint8_t *data, uint32_t len, void *user);
 int read(uint8_t addr, uint8_t *reg, uint8_t regLen, uint8_t *buff,
          uint32_t len, void *user);
 
-ICM_20948_Status_e initializeDMP(ICM_20948_Device_t *pdev);
-ICM_20948_Status_e setup_IMU(ICM_20948_Device_t *pdev,
-                             ICM_20948_Serif_t *serif);
-ICM_20948_Status_e startupDefault(ICM_20948_Device_t *pdev, bool minimal);
-ICM_20948_Status_e startupMagnetometer(ICM_20948_Device_t *pdev, bool minimal);
-ICM_20948_Status_e readMagnetometer(ICM_20948_Device_t *pdev,
-                                    AK09916_Reg_Addr_e reg, uint8_t *data);
+// ICM_20948_Status_e initializeDMP(ICM_20948_Device_t *pdev);
+// ICM_20948_Status_e setup_IMU(ICM_20948_Device_t *pdev,
+//                              ICM_20948_Serif_t *serif);
+// ICM_20948_Status_e startupDefault(ICM_20948_Device_t *pdev, bool minimal);
+// ICM_20948_Status_e startupMagnetometer(ICM_20948_Device_t *pdev, bool minimal);
+// ICM_20948_Status_e readMagnetometer(ICM_20948_Device_t *pdev,
+//                                     AK09916_Reg_Addr_e reg, uint8_t *data);
 
-K_THREAD_STACK_DEFINE(gyro_stack_area, DEFAULT_STACK);
-struct k_thread gyro_thread_data;
+
+// K_THREAD_STACK_DEFINE(gyro_stack_area, DEFAULT_STACK);
+// struct k_thread gyro_thread_data;
 //
-extern void read_icm20948_data(void *dev, void *unused2, void *unused3) {
-    const struct device *const i2c_dev = (const struct device *const)dev;
-    while (1) {
-        printk("Semaphore reset\n");
-        uint8_t data_ready = 0;
-        // icm20948_readregister(i2c_dev, ICM20948_DATA_RDY_STATUS,
-        // &data_ready); if (!k_sem_take(&icm20948_ready, K_FOREVER)) {
-        if (data_ready) {
-            uint16_t bytes_ready = 0;
-            // icm20948_get_fifo_count(i2c_dev, &bytes_ready);
-            printk("FIFO count: %d\n", bytes_ready);
-            // icm20948_read_fifo(i2c_dev, icm20948_fifo_buffer, bytes_ready);
-            // uint8_t dummy;
-            // icm20948_readregister(i2c_dev, ICM20948_INT_STATUS, &dummy);
-        }
-    }
-}
+// extern void read_icm20948_data(void *dev, void *unused2, void *unused3) {
+//     const struct device *const i2c_dev = (const struct device *const)dev;
+//     while (1) {
+//         printk("Semaphore reset\n");
+//         uint8_t data_ready = 0;
+//         // icm20948_readregister(i2c_dev, ICM20948_DATA_RDY_STATUS,
+//         // &data_ready); if (!k_sem_take(&icm20948_ready, K_FOREVER)) {
+//         if (data_ready) {
+//             uint16_t bytes_ready = 0;
+//             // icm20948_get_fifo_count(i2c_dev, &bytes_ready);
+//             printk("FIFO count: %d\n", bytes_ready);
+//             // icm20948_read_fifo(i2c_dev, icm20948_fifo_buffer, bytes_ready);
+//             // uint8_t dummy;
+//             // icm20948_readregister(i2c_dev, ICM20948_INT_STATUS, &dummy);
+//         }
+//     }
+// }
 
 int main(void) {
 
@@ -66,6 +67,8 @@ int main(void) {
     //     return 0;
     // k_sem_init(&icm20948_ready, 0, 1);
     // IRQ_CONNECT(6, 1, icm20948_isr, NULL, 0)
+
+    const struct gpio_dt_spec led_pin = GPIO_DT_SPEC_GET(DT_NODELABEL(led0), gpios);
     uint32_t dtr = 0;
     const struct device *const dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
     while (!dtr) {
@@ -73,7 +76,6 @@ int main(void) {
         /* Give CPU resources to low priority threads. */
         k_sleep(K_MSEC(100));
     }
-
     // Initialize I2C and set it to fast mode
     const struct device *const i2c_dev = DEVICE_DT_GET(DT_NODELABEL(i2c0));
     if (i2c_dev == NULL || !device_is_ready(i2c_dev))
@@ -86,33 +88,41 @@ int main(void) {
         dev_config = I2C_SPEED_SET(I2C_SPEED_FAST) | I2C_MODE_CONTROLLER;
     i2c_configure(i2c_dev, dev_config);
 
-    ICM_20948_Device_t icm20948;
-    ICM_20948_init_struct(&icm20948);
+    // ICM_20948_Device_t icm20948;
+    // ICM_20948_init_struct(&icm20948);
 
+    gpio_pin_configure_dt(&led_pin, GPIO_OUTPUT_LOW);
     serif_t vl53l4cx_serif = {.i2c_dev = i2c_dev, .write = write, .read = read};
     
-    VL53L4CX_Dev_t vl53l4cx; 
+    VL53L4CX_Dev_t *vl53l4cx = malloc(sizeof(VL53L4CX_Dev_t)); 
     
     const struct device *const gpio_port = DEVICE_DT_GET(DT_NODELABEL(gpio1));
-    VL53L4CX_init_device(&vl53l4cx, &vl53l4cx_serif, gpio_port, 14);
-
-    begin(&vl53l4cx);
-    
-    ICM_20948_Serif_t icm20948_serif = {
-        .read = read, .write = write, .user = (void *)i2c_dev};
-    bool init = false;
     int err;
-    do {
-        err = setup_IMU(&icm20948, &icm20948_serif);
-        if (err != ICM_20948_Stat_Ok)
-            k_sleep(K_MSEC(500));
-        else
-            init = true;
+    VL53L4CX_init_device(vl53l4cx, &vl53l4cx_serif, gpio_port, 14);
 
-    } while (!init);
+    err = begin(vl53l4cx);
+    VL53L4CX_Off(vl53l4cx);
+    err = InitSensor(vl53l4cx, 0x12);
+    printf("Error VL53L4CX init: %d\n", err);
+    gpio_pin_set_dt(&led_pin, GPIO_OUTPUT_HIGH);
+    
+    // ICM_20948_Serif_t icm20948_serif = {
+    //     .read = read, .write = write, .user = (void *)i2c_dev};
+    // bool init = false;
+    // do {
+    //     err = setup_IMU(&icm20948, &icm20948_serif);
+    //     if (err != ICM_20948_Stat_Ok)
+    //         k_sleep(K_MSEC(500));
+    //     else
+    //         init = true;
+    //
+    // } while (!init);
 
-    printk("Setup error %d\n", err);
+    // printk("Setup error %d\n", 0);
 
+    err = VL53L4CX_StartMeasurement(vl53l4cx);
+    printk("Starting measurement %d\n", err);
+    
     // This was just to check that I was interfacing properly
     // uint8_t test;
     // err = ICM_20948_get_who_am_i(&pdev, &test);
@@ -120,22 +130,22 @@ int main(void) {
 
     // ICM_20948_sw_reset(&pdev);
     // k_sleep(K_MSEC(500));
-    err = initializeDMP(&icm20948);
+    // err = initializeDMP(&icm20948);
     // printk("Initialized DMP %d\n", err);
 
-    err = inv_icm20948_enable_dmp_sensor(&icm20948, INV_ICM20948_SENSOR_ORIENTATION,
-                                         true);
+    // err = inv_icm20948_enable_dmp_sensor(&icm20948, INV_ICM20948_SENSOR_ORIENTATION,
+    //                                      true);
     // printk("DMP Sens %d\n", err);
-    err = inv_icm20948_set_dmp_sensor_period(&icm20948, DMP_ODR_Reg_Quat9, 0);
+    // err = inv_icm20948_set_dmp_sensor_period(&icm20948, DMP_ODR_Reg_Quat9, 0);
     // printk("DMP Sens period %d\n", err);
 
-    ICM_20948_enable_FIFO(&icm20948, true);
-    err = ICM_20948_enable_DMP(&icm20948, true);
+    // ICM_20948_enable_FIFO(&icm20948, true);
+    // err = ICM_20948_enable_DMP(&icm20948, true);
     // printk("Enabling DMP %d\n", err);
-    ICM_20948_reset_DMP(&icm20948);
-    ICM_20948_reset_FIFO(&icm20948);
-    uint16_t count;
-    icm_20948_DMP_data_t data;
+    // ICM_20948_reset_DMP(&icm20948);
+    // ICM_20948_reset_FIFO(&icm20948);
+    // uint16_t count;
+    // icm_20948_DMP_data_t data;
     // k_sem_give(&icm20948_ready);
 
     // irq_enable(6);
@@ -143,28 +153,41 @@ int main(void) {
     // printk("Semaphore status: %d\n", k_sem_take(&icm20948_ready, K_FOREVER));
 
     // printk("User config done\n");
-    ICM_20948_Status_e data_ready = ICM_20948_Stat_Err;
+    // ICM_20948_Status_e data_ready = ICM_20948_Stat_Err;
+    
+    uint8_t data_ready = 0, status;
+    VL53L4CX_MultiRangingData_t *rangeData =  malloc(sizeof(VL53L4CX_MultiRangingData_t));
+    
     while (1) {
-
-        data_ready = inv_icm20948_read_dmp_data(&icm20948, &data);
-        if ((data_ready == ICM_20948_Stat_Ok ||
-             data_ready == ICM_20948_Stat_FIFOMoreDataAvail)) {
-            if ((data.header & DMP_header_bitmap_Quat9) > 0) {
-                double q1 = ((double)data.Quat9.Data.Q1) /
-                            1073741824.0; // Convert to double. Divide by 2^30
-                double q2 = ((double)data.Quat9.Data.Q2) /
-                            1073741824.0; // Convert to double. Divide by 2^30
-                double q3 = ((double)data.Quat9.Data.Q3) /
-                            1073741824.0; // Convert to double. Divide by 2^30
-                double q0 = sqrt(1.0 - ((q1 * q1) + (q2 * q2) + (q3 * q3)));
-                printf(
-                    "{\"quat_w\":%.3f,\"quat_x\":%.3f,\"quat_y\":%.3f,\"quat_"
-                    "z\":%.3f}\n",
-                    q0, q1, q2, q3);
-            }
+        status = VL53L4CX_GetMeasurementDataReady(vl53l4cx, &data_ready);
+        if (!status && (data_ready != 0)) {
+          printf("Data ready");
+          VL53L4CX_GetMultiRangingData(vl53l4cx, rangeData);
+          for (int i = 0; i < rangeData->NumberOfObjectsFound; i++) {
+            printf("Found %1d: Distance %4d\n", i, rangeData->RangeData[i].RangeMilliMeter);
+          }
+        status = VL53L4CX_ClearInterruptAndStartMeasurement(vl53l4cx);
         }
-        if (data_ready != ICM_20948_Stat_FIFOMoreDataAvail)
-            k_sleep(K_MSEC(1));
+        // printf("Loop\n");
+        // data_ready = inv_icm20948_read_dmp_data(&icm20948, &data);
+        // if ((data_ready == ICM_20948_Stat_Ok ||
+        //      data_ready == ICM_20948_Stat_FIFOMoreDataAvail)) {
+        //     if ((data.header & DMP_header_bitmap_Quat9) > 0) {
+        //         double q1 = ((double)data.Quat9.Data.Q1) /
+        //                     1073741824.0; // Convert to double. Divide by 2^30
+        //         double q2 = ((double)data.Quat9.Data.Q2) /
+        //                     1073741824.0; // Convert to double. Divide by 2^30
+        //         double q3 = ((double)data.Quat9.Data.Q3) /
+        //                     1073741824.0; // Convert to double. Divide by 2^30
+        //         double q0 = sqrt(1.0 - ((q1 * q1) + (q2 * q2) + (q3 * q3)));
+        //         printf(
+        //             "{\"quat_w\":%.3f,\"quat_x\":%.3f,\"quat_y\":%.3f,\"quat_"
+        //             "z\":%.3f}\n",
+        //             q0, q1, q2, q3);
+        //     }
+        // }
+        // if (data_ready != ICM_20948_Stat_FIFOMoreDataAvail)
+        //     k_sleep(K_MSEC(1));
     }
 
     // Create and start a thread that constantly tries to read from the IMU
