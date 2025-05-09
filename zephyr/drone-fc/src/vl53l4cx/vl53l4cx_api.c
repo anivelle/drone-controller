@@ -505,7 +505,7 @@ VL53L4CX_Error VL53L4CX_StartMeasurement(VL53L4CX_Dev_t *Dev)
   uint8_t i;
   VL53L4CX_LLDriverData_t *pdev = VL53L4CXDevStructGetLLDriverHandle(Dev);
 
-  VL53L4CX_load_patch(Dev);
+  Status = VL53L4CX_load_patch(Dev);
   for (i = 0; i < VL53L4CX_MAX_RANGE_RESULTS; i++) {
     pdev->PreviousRangeMilliMeter[i] = 0;
     pdev->PreviousRangeStatus[i] = 255;

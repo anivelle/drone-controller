@@ -35,10 +35,9 @@ int read(uint8_t addr, uint8_t *reg, uint8_t regLen, uint8_t *buff,
 // ICM_20948_Status_e setup_IMU(ICM_20948_Device_t *pdev,
 //                              ICM_20948_Serif_t *serif);
 // ICM_20948_Status_e startupDefault(ICM_20948_Device_t *pdev, bool minimal);
-// ICM_20948_Status_e startupMagnetometer(ICM_20948_Device_t *pdev, bool minimal);
-// ICM_20948_Status_e readMagnetometer(ICM_20948_Device_t *pdev,
+// ICM_20948_Status_e startupMagnetometer(ICM_20948_Device_t *pdev, bool
+// minimal); ICM_20948_Status_e readMagnetometer(ICM_20948_Device_t *pdev,
 //                                     AK09916_Reg_Addr_e reg, uint8_t *data);
-
 
 // K_THREAD_STACK_DEFINE(gyro_stack_area, DEFAULT_STACK);
 // struct k_thread gyro_thread_data;
@@ -54,7 +53,8 @@ int read(uint8_t addr, uint8_t *reg, uint8_t regLen, uint8_t *buff,
 //             uint16_t bytes_ready = 0;
 //             // icm20948_get_fifo_count(i2c_dev, &bytes_ready);
 //             printk("FIFO count: %d\n", bytes_ready);
-//             // icm20948_read_fifo(i2c_dev, icm20948_fifo_buffer, bytes_ready);
+//             // icm20948_read_fifo(i2c_dev, icm20948_fifo_buffer,
+//             bytes_ready);
 //             // uint8_t dummy;
 //             // icm20948_readregister(i2c_dev, ICM20948_INT_STATUS, &dummy);
 //         }
@@ -68,7 +68,8 @@ int main(void) {
     // k_sem_init(&icm20948_ready, 0, 1);
     // IRQ_CONNECT(6, 1, icm20948_isr, NULL, 0)
 
-    const struct gpio_dt_spec led_pin = GPIO_DT_SPEC_GET(DT_NODELABEL(led0), gpios);
+    const struct gpio_dt_spec led_pin =
+        GPIO_DT_SPEC_GET(DT_NODELABEL(led0), gpios);
     uint32_t dtr = 0;
     const struct device *const dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
     while (!dtr) {
@@ -91,21 +92,23 @@ int main(void) {
     // ICM_20948_Device_t icm20948;
     // ICM_20948_init_struct(&icm20948);
 
-    gpio_pin_configure_dt(&led_pin, GPIO_OUTPUT_LOW);
     serif_t vl53l4cx_serif = {.i2c_dev = i2c_dev, .write = write, .read = read};
-    
-    VL53L4CX_Dev_t *vl53l4cx = malloc(sizeof(VL53L4CX_Dev_t)); 
-    
+
+    VL53L4CX_Dev_t *vl53l4cx = malloc(sizeof(VL53L4CX_Dev_t));
+
     const struct device *const gpio_port = DEVICE_DT_GET(DT_NODELABEL(gpio1));
     int err;
     VL53L4CX_init_device(vl53l4cx, &vl53l4cx_serif, gpio_port, 14);
 
     err = begin(vl53l4cx);
     VL53L4CX_Off(vl53l4cx);
+    VL53L4CX_On(vl53l4cx);
     err = InitSensor(vl53l4cx, 0x12);
     printf("Error VL53L4CX init: %d\n", err);
-    gpio_pin_set_dt(&led_pin, GPIO_OUTPUT_HIGH);
-    
+
+
+    // err = InitSensor(vl53l4cx, 0x12);
+
     // ICM_20948_Serif_t icm20948_serif = {
     //     .read = read, .write = write, .user = (void *)i2c_dev};
     // bool init = false;
@@ -122,7 +125,7 @@ int main(void) {
 
     err = VL53L4CX_StartMeasurement(vl53l4cx);
     printk("Starting measurement %d\n", err);
-    
+
     // This was just to check that I was interfacing properly
     // uint8_t test;
     // err = ICM_20948_get_who_am_i(&pdev, &test);
@@ -133,11 +136,12 @@ int main(void) {
     // err = initializeDMP(&icm20948);
     // printk("Initialized DMP %d\n", err);
 
-    // err = inv_icm20948_enable_dmp_sensor(&icm20948, INV_ICM20948_SENSOR_ORIENTATION,
+    // err = inv_icm20948_enable_dmp_sensor(&icm20948,
+    // INV_ICM20948_SENSOR_ORIENTATION,
     //                                      true);
     // printk("DMP Sens %d\n", err);
-    // err = inv_icm20948_set_dmp_sensor_period(&icm20948, DMP_ODR_Reg_Quat9, 0);
-    // printk("DMP Sens period %d\n", err);
+    // err = inv_icm20948_set_dmp_sensor_period(&icm20948, DMP_ODR_Reg_Quat9,
+    // 0); printk("DMP Sens period %d\n", err);
 
     // ICM_20948_enable_FIFO(&icm20948, true);
     // err = ICM_20948_enable_DMP(&icm20948, true);
@@ -154,19 +158,21 @@ int main(void) {
 
     // printk("User config done\n");
     // ICM_20948_Status_e data_ready = ICM_20948_Stat_Err;
-    
+
     uint8_t data_ready = 0, status;
-    VL53L4CX_MultiRangingData_t *rangeData =  malloc(sizeof(VL53L4CX_MultiRangingData_t));
-    
+    VL53L4CX_MultiRangingData_t *rangeData =
+        malloc(sizeof(VL53L4CX_MultiRangingData_t));
+
     while (1) {
         status = VL53L4CX_GetMeasurementDataReady(vl53l4cx, &data_ready);
         if (!status && (data_ready != 0)) {
-          printf("Data ready");
-          VL53L4CX_GetMultiRangingData(vl53l4cx, rangeData);
-          for (int i = 0; i < rangeData->NumberOfObjectsFound; i++) {
-            printf("Found %1d: Distance %4d\n", i, rangeData->RangeData[i].RangeMilliMeter);
-          }
-        status = VL53L4CX_ClearInterruptAndStartMeasurement(vl53l4cx);
+            printf("Data ready");
+            VL53L4CX_GetMultiRangingData(vl53l4cx, rangeData);
+            for (int i = 0; i < rangeData->NumberOfObjectsFound; i++) {
+                printf("Found %1d: Distance %4d\n", i,
+                       rangeData->RangeData[i].RangeMilliMeter);
+            }
+            status = VL53L4CX_ClearInterruptAndStartMeasurement(vl53l4cx);
         }
         // printf("Loop\n");
         // data_ready = inv_icm20948_read_dmp_data(&icm20948, &data);
@@ -174,11 +180,14 @@ int main(void) {
         //      data_ready == ICM_20948_Stat_FIFOMoreDataAvail)) {
         //     if ((data.header & DMP_header_bitmap_Quat9) > 0) {
         //         double q1 = ((double)data.Quat9.Data.Q1) /
-        //                     1073741824.0; // Convert to double. Divide by 2^30
+        //                     1073741824.0; // Convert to double. Divide by
+        //                     2^30
         //         double q2 = ((double)data.Quat9.Data.Q2) /
-        //                     1073741824.0; // Convert to double. Divide by 2^30
+        //                     1073741824.0; // Convert to double. Divide by
+        //                     2^30
         //         double q3 = ((double)data.Quat9.Data.Q3) /
-        //                     1073741824.0; // Convert to double. Divide by 2^30
+        //                     1073741824.0; // Convert to double. Divide by
+        //                     2^30
         //         double q0 = sqrt(1.0 - ((q1 * q1) + (q2 * q2) + (q3 * q3)));
         //         printf(
         //             "{\"quat_w\":%.3f,\"quat_x\":%.3f,\"quat_y\":%.3f,\"quat_"
@@ -224,7 +233,8 @@ int read(uint8_t addr, uint8_t *reg, uint8_t regLen, uint8_t *buff,
          uint32_t len, void *user) {
     const struct device *const i2c_dev = (const struct device *const)user;
 
-    if (!i2c_write_read(i2c_dev, addr, &reg, regLen, buff, len))
+    // i2c_burst_read(i2c_dev, addr, reg, uint8_t *buf, uint32_t num_bytes)
+    if (!i2c_write_read(i2c_dev, addr, reg, regLen, buff, len))
         return ICM_20948_Stat_Ok;
     return ICM_20948_Stat_Err;
 }

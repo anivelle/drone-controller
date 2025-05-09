@@ -11,7 +11,7 @@ void VL53L4CX_init_device(VL53L4CX_Dev_t *myDevice, serif_t *i2c,
 
 int begin(VL53L4CX_Dev_t *pdev) {
     if (pdev->xshut >= 0) {
-        gpio_pin_configure(pdev->port, pdev->xshut, GPIO_OUTPUT_INACTIVE);
+        gpio_pin_configure(pdev->port, pdev->xshut, GPIO_OUTPUT_ACTIVE);
         // gpio_pin_set(pdev->port, pdev->xshut, 0);
     }
     return 0;
@@ -28,6 +28,7 @@ VL53L4CX_Error InitSensor(VL53L4CX_Dev_t *pdev, uint8_t address) {
     VL53L4CX_Error status = VL53L4CX_ERROR_NONE;
     VL53L4CX_Off(pdev);
     VL53L4CX_On(pdev);
+
     status = VL53L4CX_SetDeviceAddress(pdev, address);
 
     if (status == VL53L4CX_ERROR_NONE) {
