@@ -180,11 +180,13 @@ VL53L4CX_Error VL53L4CX_load_patch(VL53L4CX_DEV Dev)
                              VL53L4CX_FIRMWARE__ENABLE, 0x00);
 
   if (status == VL53L4CX_ERROR_NONE) {
-    VL53L4CX_enable_powerforce(Dev);
+     status = VL53L4CX_enable_powerforce(Dev);
   }
 
-  VL53L4CX_get_tuning_parm(Dev, VL53L4CX_TUNINGPARM_PHASECAL_PATCH_POWER,
+  if (status == VL53L4CX_ERROR_NONE) {
+    status = VL53L4CX_get_tuning_parm(Dev, VL53L4CX_TUNINGPARM_PHASECAL_PATCH_POWER,
                            &patch_tuning);
+  }
 
   switch (patch_tuning) {
     case 0:

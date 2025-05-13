@@ -104,6 +104,8 @@ int main(void) {
 
     err = begin(vl53l4cx);
     VL53L4CX_Off(vl53l4cx);
+    // VL53L4CX_On(vl53l4cx);
+    // k_sleep(K_MSEC(5));
     err = InitSensor(vl53l4cx, 0x12);
     printf("Error VL53L4CX init: %d\n", err);
 
@@ -128,13 +130,19 @@ int main(void) {
                            &test);
     printf("Device address: %X\n", test);
     err = VL53L4CX_StartMeasurement(vl53l4cx);
+    uint8_t comms_buffer[6] = {0};
+    err = VL53L4CX_RdWord(vl53l4cx,
+                                 VL53L4CX_PATCH__OFFSET_0, (uint16_t *)comms_buffer);
+    for (int i = 0; i < 6; i++) {
+      printf("Comms buffer %d: %X\n", i, comms_buffer[i]);
+    }
+
     printk("Starting measurement %d\n", err);
 
     // This was just to check that I was interfacing properly
     // uint8_t test;
     // err = ICM_20948_get_who_am_i(&pdev, &test);
     // printk("Error %d: %X\n", err, test);
-
     // ICM_20948_sw_reset(&pdev);
     // k_sleep(K_MSEC(500));
     // err = initializeDMP(&icm20948);
@@ -166,6 +174,7 @@ int main(void) {
     uint8_t data_ready = 0, status;
     VL53L4CX_MultiRangingData_t *rangeData =
         malloc(sizeof(VL53L4CX_MultiRangingData_t));
+
     while (1) {
 
         do {

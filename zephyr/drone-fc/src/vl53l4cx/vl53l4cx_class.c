@@ -127,12 +127,17 @@ VL53L4CX_Error VL53L4CX_I2CWrite(VL53L4CX_Dev_t *Dev, uint16_t RegisterAddr,
     uint8_t buffer[1 + NumByteToWrite];
 
     uint8_t addr = (uint8_t)((Dev->I2cDevAddr >> 1) & 0x7F);
+
     // Split up the register so that it "conforms" to 8-bit register address and
     // send the rest in the write buffer
     uint8_t regH = (uint8_t)((RegisterAddr) >> 8);
     buffer[0] = (uint8_t)((RegisterAddr) & 0xFF);
     memcpy(&buffer[1], pBuffer, NumByteToWrite);
-    return (Dev->I2cHandle->write)(addr, regH, buffer, NumByteToWrite + 2,
+    
+    // Cause of my problem was here. The write function itself increases the
+    // length of the written buffer by 1, so when I passed in a length of
+    // NumByteToWrite + 2 it broke silently
+    return (Dev->I2cHandle->write)(addr, regH, buffer, NumByteToWrite + 1,
                                  (void *)Dev->I2cHandle->i2c_dev);
 
     // while (i < NumByteToWrite) {
