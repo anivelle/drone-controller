@@ -51,7 +51,7 @@ typedef struct {
 
     int (*write)(uint8_t addr, uint8_t reg, uint8_t *buf, uint32_t numWrite, void *user);
     int (*read)(uint8_t addr, uint8_t *writeBuf, uint8_t numWrite,
-                uint8_t *readBuf, uint32_t numRead, void *user);
+                uint8_t *readBuf, uint32_t numRead,  void *user);
 } serif_t;
 
 

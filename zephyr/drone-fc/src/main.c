@@ -29,7 +29,7 @@ BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart),
 
 int write(uint8_t addr, uint8_t reg, uint8_t *data, uint32_t len, void *user);
 int read(uint8_t addr, uint8_t *reg, uint8_t regLen, uint8_t *buff,
-         uint32_t len, void *user);
+          uint32_t len,  void *user);
 
 // ICM_20948_Status_e initializeDMP(ICM_20948_Device_t *pdev);
 // ICM_20948_Status_e setup_IMU(ICM_20948_Device_t *pdev,
@@ -88,10 +88,12 @@ int main(void) {
     else
         dev_config = I2C_SPEED_SET(I2C_SPEED_FAST) | I2C_MODE_CONTROLLER;
     i2c_configure(i2c_dev, dev_config);
+    
 
     // ICM_20948_Device_t icm20948;
     // ICM_20948_init_struct(&icm20948);
 
+    // k_sleep(K_MSEC(500));
     serif_t vl53l4cx_serif = {.i2c_dev = i2c_dev, .write = write, .read = read};
 
     VL53L4CX_Dev_t *vl53l4cx = malloc(sizeof(VL53L4CX_Dev_t));
@@ -102,7 +104,6 @@ int main(void) {
 
     err = begin(vl53l4cx);
     VL53L4CX_Off(vl53l4cx);
-    VL53L4CX_On(vl53l4cx);
     err = InitSensor(vl53l4cx, 0x12);
     printf("Error VL53L4CX init: %d\n", err);
 
@@ -122,7 +123,10 @@ int main(void) {
     // } while (!init);
 
     // printk("Setup error %d\n", 0);
-
+    uint16_t test = 0;
+    err = VL53L4CX_RdWord(vl53l4cx, VL53L4CX_IDENTIFICATION__MODEL_ID ,
+                           &test);
+    printf("Device address: %X\n", test);
     err = VL53L4CX_StartMeasurement(vl53l4cx);
     printk("Starting measurement %d\n", err);
 
@@ -162,14 +166,17 @@ int main(void) {
     uint8_t data_ready = 0, status;
     VL53L4CX_MultiRangingData_t *rangeData =
         malloc(sizeof(VL53L4CX_MultiRangingData_t));
-
     while (1) {
+
+        do {
         status = VL53L4CX_GetMeasurementDataReady(vl53l4cx, &data_ready);
+        } while(!data_ready);
+
         if (!status && (data_ready != 0)) {
-            printf("Data ready");
+            printf("Data ready\n");
             VL53L4CX_GetMultiRangingData(vl53l4cx, rangeData);
             for (int i = 0; i < rangeData->NumberOfObjectsFound; i++) {
-                printf("Found %1d: Distance %4d\n", i,
+                printf("\tFound %1d: Distance %4d\n", i,
                        rangeData->RangeData[i].RangeMilliMeter);
             }
             status = VL53L4CX_ClearInterruptAndStartMeasurement(vl53l4cx);
@@ -208,16 +215,6 @@ int main(void) {
     return 0;
 }
 
-// int write(uint8_t addr, uint8_t *buf, int numWrite, void *user) {
-//   const struct device *i2c_dev = (const struct device *)user;
-//   return i2c_write(i2c_dev, buf, numWrite, addr);
-// }
-//
-// int read(uint8_t addr, uint8_t *writeBuf, uint8_t numWrite, uint8_t *readBuf,
-//          int numRead, void *user) {
-//   const struct device *i2c_dev = (const struct device *)user;
-//   return i2c_write_read(i2c_dev, addr, writeBuf, numWrite, readBuf, numRead);
-// }
 
 int write(uint8_t addr, uint8_t reg, uint8_t *data, uint32_t len, void *user) {
     const struct device *const i2c_dev = (const struct device *const)user;
@@ -230,12 +227,12 @@ int write(uint8_t addr, uint8_t reg, uint8_t *data, uint32_t len, void *user) {
 }
 
 int read(uint8_t addr, uint8_t *reg, uint8_t regLen, uint8_t *buff,
-         uint32_t len, void *user) {
+         uint32_t len,  void *user) {
     const struct device *const i2c_dev = (const struct device *const)user;
-
     // i2c_burst_read(i2c_dev, addr, reg, uint8_t *buf, uint32_t num_bytes)
     if (!i2c_write_read(i2c_dev, addr, reg, regLen, buff, len))
-        return ICM_20948_Stat_Ok;
+      return ICM_20948_Stat_Ok;
+
     return ICM_20948_Stat_Err;
 }
 

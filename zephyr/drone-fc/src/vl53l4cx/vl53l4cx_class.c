@@ -132,7 +132,7 @@ VL53L4CX_Error VL53L4CX_I2CWrite(VL53L4CX_Dev_t *Dev, uint16_t RegisterAddr,
     uint8_t regH = (uint8_t)((RegisterAddr) >> 8);
     buffer[0] = (uint8_t)((RegisterAddr) & 0xFF);
     memcpy(&buffer[1], pBuffer, NumByteToWrite);
-    return Dev->I2cHandle->write(addr, regH, buffer, NumByteToWrite + 2,
+    return (Dev->I2cHandle->write)(addr, regH, buffer, NumByteToWrite + 2,
                                  (void *)Dev->I2cHandle->i2c_dev);
 
     // while (i < NumByteToWrite) {
@@ -188,7 +188,7 @@ VL53L4CX_Error VL53L4CX_I2CRead(VL53L4CX_Dev_t *Dev, uint16_t RegisterAddr,
     // } while (status != 0);
 
     // uint32_t i = 0;
-    return Dev->I2cHandle->read(addr, buffer, 2, pBuffer, NumByteToRead,
+    return (Dev->I2cHandle->read)(addr, buffer, 2, pBuffer, NumByteToRead, 
                                 (void *)Dev->I2cHandle->i2c_dev);
     // if (NumByteToRead > DEFAULT_I2C_BUFFER_LEN) {
     //   while (i < NumByteToRead) {

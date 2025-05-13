@@ -155,7 +155,7 @@ extern int memcmp(const void *, const void *, size_t); // Avoid compiler warning
   {
     // Changed return types so the VL53L4CX library can play nicely 
     int (*write)(uint8_t addr, uint8_t regaddr, uint8_t *pdata, uint32_t len, void *user);
-    int (*read)(uint8_t addr, uint8_t *regaddr, uint8_t regLen, uint8_t *pdata, uint32_t len, void *user);
+    int (*read)(uint8_t addr, uint8_t *regaddr, uint8_t regLen, uint8_t *pdata, uint32_t len,  void *user);
     // void				(*delay)(uint32_t ms);
     void *user;
   } ICM_20948_Serif_t;                      // This is the vtable of serial interface functions
