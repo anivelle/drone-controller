@@ -7,4 +7,5 @@
   (lib (name "KS_TSSLE-6868R")(type "KiCad")(uri "${KIPRJMOD}/KS_TSSLE-6868R.kicad_sym")(options "")(descr ""))
   (lib (name "PTS820J25MSMTR")(type "KiCad")(uri "${KIPRJMOD}/2024-11-19_04-13-21.kicad_sym")(options "")(descr ""))
   (lib (name "ECS-320-10-37B-CKY-TR")(type "KiCad")(uri "${KIPRJMOD}/ECS-CKY/ECS-320-10-37B-CKY-TR.kicad_sym")(options "")(descr ""))
+  (lib (name "BSS_138_2")(type "KiCad")(uri "${KIPRJMOD}/BSS_138_2.kicad_sym")(options "")(descr ""))
 )
